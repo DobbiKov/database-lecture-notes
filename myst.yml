@@ -1,0 +1,15 @@
+# See docs at: https://mystmd.org/guide/frontmatter
+version: 1
+project:
+  id: eebc70ac-1eb0-45a7-bfea-54e0ea33451d
+  title: Lecture notes for the database course
+  # description:
+  # keywords: []
+  authors: [Yehor KOROTENKO]
+  # github:
+  # To autogenerate a Table of Contents, run "myst init --write-toc"
+site:
+  template: book-theme
+  # options:
+  #   favicon: favicon.ico
+  #   logo: site_logo.png
