@@ -6,7 +6,11 @@ project:
   # description:
   # keywords: []
   authors: [Yehor KOROTENKO]
-  # github:
+  github: https://github.com/DobbiKov/
+  toc:
+    - file: root.md
+    - file: db-normalization.md
+    - file: db-normalization-algorithm.md
   # To autogenerate a Table of Contents, run "myst init --write-toc"
 site:
   template: book-theme

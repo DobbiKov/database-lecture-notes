@@ -1,3 +1,13 @@
+---
+exports:
+  - format: tex
+  - format: pdf
+date: 2025-04-29
+authors: 
+  - Yehor KOROTENKO
+---
+# Database normalization algorithm
+
 Okay, let's simplify the database normalization process and walk through an example.
 
 **The Simple Goal:**
@@ -113,3 +123,4 @@ We decomposed the original big table `Showings` into three smaller tables, all i
     *   Stores the relationship: which actor was in which movie shown at which cinema. This table links the other two tables together using `Titre` and `Nom-Ciné` (which act as foreign keys here).
 
 Now, redundancy is reduced, and update anomalies are avoided!
+

@@ -264,4 +264,4 @@ You primarily need to consider BCNF when:
 In practice, achieving BCNF can sometimes lead to more tables and more complex queries.  As always, you need to weigh the benefits of BCNF against the potential performance impact and complexity. 3NF is often sufficient, but understanding BCNF allows you to recognize and address more subtle data integrity issues when they arise.
 
 
-
+Example and explanation of the algorithm for the db normalisation is provided in [this file](./db-normalization-algorithm.md)
