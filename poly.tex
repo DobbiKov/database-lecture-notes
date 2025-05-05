@@ -1,0 +1,1933 @@
+\documentclass[12pt]{book}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\usepackage{amsmath, amssymb} % Math symbols
+\usepackage{graphicx} % Including images (though none used here)
+\usepackage{listings} % Formatting code blocks
+\usepackage{xcolor} % Using colors, often with listings
+\usepackage{hyperref} % Creating hyperlinks
+\usepackage{booktabs} % For professional-quality tables
+\usepackage[utf8]{inputenc} % Handle UTF-8 input
+\usepackage[T1]{fontenc} % Font encoding
+
+% Listings configuration for SQL
+\lstdefinestyle{sqlstyle}{
+    language=SQL,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{orange},
+    commentstyle=\color{gray}\textit,
+    morecomment=[l]--,
+    showstringspaces=false,
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    frame=single,
+    rulecolor=\color{black!30},
+    backgroundcolor=\color{black!5},
+    tabsize=2,
+    captionpos=b % Ensure caption is below the listing
+}
+\lstdefinestyle{bashstyle}{
+    language=bash,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{purple}\bfseries,
+    stringstyle=\color{orange},
+    commentstyle=\color{gray}\textit,
+    showstringspaces=false,
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    frame=single,
+    rulecolor=\color{black!30},
+    backgroundcolor=\color{black!5},
+    tabsize=2,
+    captionpos=b % Ensure caption is below the listing
+}
+
+% Set default style for listings
+\lstset{style=sqlstyle} % Default to SQL style
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    pdftitle={Database Fundamentals},
+    pdfpagemode=FullScreen,
+}
+
+\title{Database Fundamentals: Relational Algebra, PostgreSQL, and Normalization}
+\author{Yehor KOROTENKO} % <-- Replace with actual name
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\chapter{Introduction}
+
+Welcome, second-year computer science students, to the exciting world of databases! In this course, we'll delve into the fundamental concepts and practical applications of database management systems. Due to the current circumstances, this book will serve as your primary guide to understanding relational algebra, PostgreSQL, and database normalization. We'll explore these topics in detail, providing you with the knowledge and skills to design, implement, and manage effective and efficient databases.
+
+This book is designed to be self-contained, with clear explanations, illustrative examples, and helpful diagrams. We'll start with the theoretical foundations of relational algebra, then move on to the practical implementation of databases using PostgreSQL, and finally, learn how to design robust and well-structured databases using normalization techniques.
+
+Let's embark on this journey together!
+
+\chapter{Relational Algebra}
+
+Relational algebra is a theoretical query language that provides a formal foundation for manipulating relations (tables) in a relational database. It consists of a set of operations that take one or more relations as input and produce a new relation as output. Understanding relational algebra is crucial for understanding how databases work internally and for optimizing database queries.
+
+\section{Core Relational Algebra Operations}
+
+The core operations of relational algebra are fundamental building blocks for constructing more complex queries. Let's examine each of them in detail:
+
+\subsection{Selection ($\sigma$)}
+
+The selection operation, denoted by $\sigma$, filters rows (tuples) from a relation based on a specified condition. It selects tuples that satisfy a given predicate.
+
+\textbf{Syntax:} $\sigma_{\textit{condition}}(\mathit{R})$
+
+where:
+\begin{itemize}
+    \item $\sigma$ is the selection operator.
+    \item $\textit{condition}$ is a predicate (Boolean expression) that evaluates to true or false for each tuple.
+    \item $\mathit{R}$ is the relation (table) being filtered.
+\end{itemize}
+
+\textbf{Example:}
+
+Consider a relation \texttt{Students} with the following attributes: \texttt{StudentID}, \texttt{Name}, \texttt{Major}, \texttt{GPA}.
+
+\begin{table}[htbp] % Changed [H] to [htbp]
+\centering
+\begin{tabular}{@{}cccc@{}} % Using booktabs @{} removes side padding
+\toprule
+StudentID & Name & Major & GPA \\
+\midrule
+101 & Alice & Computer Science & 3.8 \\
+102 & Bob & Mathematics & 3.5 \\
+103 & Charlie & Computer Science & 3.9 \\
+104 & David & Physics & 3.2 \\
+105 & Eve & Biology & 3.7 \\
+\bottomrule
+\end{tabular}
+\caption{The \texttt{Students} Relation}
+\label{tab:students}
+\end{table}
+
+To select all students majoring in Computer Science:
+
+$\sigma_{\textit{Major} = \text{'Computer Science'}}(\mathit{Students})$
+
+The result would be:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cccc@{}}
+\toprule
+StudentID & Name & Major & GPA \\
+\midrule
+101 & Alice & Computer Science & 3.8 \\
+103 & Charlie & Computer Science & 3.9 \\
+\bottomrule
+\end{tabular}
+\caption{Result of selecting Computer Science students}
+\label{tab:select_cs_students}
+\end{table}
+
+\textbf{Conditions:}
+
+Conditions can involve comparison operators (e.g., =, <, >, <=, >=, !=) and logical operators (e.g., $\land$ (AND), $\lor$ (OR), $\lnot$ (NOT)).
+
+Example using AND ($\land$):
+
+$\sigma_{\textit{Major} = \text{'Computer Science'} \land \textit{GPA} > 3.8}(\mathit{Students})$
+
+Result:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cccc@{}}
+\toprule
+StudentID & Name & Major & GPA \\
+\midrule
+103 & Charlie & Computer Science & 3.9 \\
+\bottomrule
+\end{tabular}
+\caption{Result of selecting CS students with GPA > 3.8}
+\label{tab:select_cs_gpa_students}
+\end{table}
+
+
+\subsection{Projection ($\pi$)}
+
+The projection operation, denoted by $\pi$, selects specific columns (attributes) from a relation. It creates a new relation containing only the specified attributes.
+
+\textbf{Syntax:} $\pi_{\textit{attribute1, attribute2, ..., attributeN}}(\mathit{R})$
+
+where:
+\begin{itemize}
+    \item $\pi$ is the projection operator.
+    \item $\textit{attribute1, attribute2, ..., attributeN}$ are the attributes to be selected.
+    \item $\mathit{R}$ is the relation (table).
+\end{itemize}
+
+\textbf{Example:}
+
+Using the \texttt{Students} relation from Table \ref{tab:students}, to project only the \texttt{Name} and \texttt{Major} attributes:
+
+$\pi_{\textit{Name, Major}}(\mathit{Students})$
+
+The result would be:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+Name & Major \\
+\midrule
+Alice & Computer Science \\
+Bob & Mathematics \\
+Charlie & Computer Science \\
+David & Physics \\
+Eve & Biology \\
+\bottomrule
+\end{tabular}
+\caption{Result of projecting Name and Major from Students}
+\label{tab:project_name_major}
+\end{table}
+
+\textbf{Duplicate Elimination:}
+
+Projection automatically eliminates duplicate tuples in the result. This is a key characteristic of relational algebra; results are always sets, not multisets. If you want to preserve duplicates (which is uncommon in relational algebra), you'd need to use variations found in implementations, which we will discuss later within the context of SQL.
+
+\subsection{Union ($\cup$)}
+
+The union operation, denoted by $\cup$, combines the tuples from two relations, producing a new relation containing all tuples from both relations.
+
+\textbf{Syntax:} $\mathit{R} \cup \mathit{S}$
+
+where:
+\begin{itemize}
+    \item $\mathit{R}$ and $\mathit{S}$ are relations (tables).
+\end{itemize}
+
+\textbf{Conditions:}
+
+For the union operation to be valid, the relations $\mathit{R}$ and $\mathit{S}$ must be \emph{union-compatible}. This means:
+
+\begin{enumerate}
+    \item They must have the same number of attributes.
+    \item The corresponding attributes must have compatible data types (domains).
+\end{enumerate}
+
+\textbf{Example:}
+
+Consider two relations: \texttt{Undergraduates} and \texttt{Graduates}. Both have the attributes \texttt{StudentID} and \texttt{Name}.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+StudentID & Name \\
+\midrule
+201 & John \\
+202 & Jane \\
+203 & Mike \\
+\bottomrule
+\end{tabular}
+\caption{The \texttt{Undergraduates} Relation}
+\label{tab:undergraduates}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+StudentID & Name \\
+\midrule
+301 & Sarah \\
+302 & David \\
+202 & Jane \\ % Duplicate entry
+\bottomrule
+\end{tabular}
+\caption{The \texttt{Graduates} Relation}
+\label{tab:graduates}
+\end{table}
+
+$\mathit{Undergraduates} \cup \mathit{Graduates}$
+
+The result would be:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+StudentID & Name \\
+\midrule
+201 & John \\
+202 & Jane \\ % Duplicate removed
+203 & Mike \\
+301 & Sarah \\
+302 & David \\
+\bottomrule
+\end{tabular}
+\caption{Result of $\mathit{Undergraduates} \cup \mathit{Graduates}$}
+\label{tab:union_result}
+\end{table}
+
+Note that the duplicate tuple (202, Jane) appears only once in the result due to the set semantics of relational algebra.
+
+\subsection{Set Difference ($-$}
+
+The set difference operation, denoted by $-$, returns tuples that are present in the first relation but not in the second relation.
+
+\textbf{Syntax:} $\mathit{R} - \mathit{S}$
+
+where:
+\begin{itemize}
+    \item $\mathit{R}$ and $\mathit{S}$ are relations (tables).
+\end{itemize}
+
+\textbf{Conditions:}
+
+Like the union operation, set difference requires the relations $\mathit{R}$ and $\mathit{S}$ to be union-compatible.
+
+\textbf{Example:}
+
+Using the \texttt{Undergraduates} (Table \ref{tab:undergraduates}) and \texttt{Graduates} (Table \ref{tab:graduates}) relations from the previous example:
+
+$\mathit{Undergraduates} - \mathit{Graduates}$
+
+The result would be:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+StudentID & Name \\
+\midrule
+201 & John \\
+203 & Mike \\
+\bottomrule
+\end{tabular}
+\caption{Result of $\mathit{Undergraduates} - \mathit{Graduates}$}
+\label{tab:set_difference_result}
+\end{table}
+
+This is because (202, Jane) is present in both \texttt{Undergraduates} and \texttt{Graduates}.
+
+\subsection{Cartesian Product ($\times$)}
+
+The Cartesian product operation, denoted by $\times$, combines each tuple from the first relation with each tuple from the second relation. It creates a new relation containing all possible pairs of tuples from the input relations.
+
+\textbf{Syntax:} $\mathit{R} \times \mathit{S}$
+
+where:
+\begin{itemize}
+    \item $\mathit{R}$ and $\mathit{S}$ are relations (tables).
+\end{itemize}
+
+\textbf{Example:}
+
+Consider two relations: \texttt{Departments} and \texttt{Courses}.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+DeptID & DeptName \\
+\midrule
+1 & Computer Science \\
+2 & Mathematics \\
+\bottomrule
+\end{tabular}
+\caption{The \texttt{Departments} Relation}
+\label{tab:departments_cartesian}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+CourseID & CourseName \\
+\midrule
+CS101 & Intro to Programming \\
+MA101 & Calculus \\
+\bottomrule
+\end{tabular}
+\caption{The \texttt{Courses} Relation (for Cartesian Product)}
+\label{tab:courses_cartesian}
+\end{table}
+
+$\mathit{Departments} \times \mathit{Courses}$
+
+The result would be:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cccc@{}}
+\toprule
+DeptID & DeptName & CourseID & CourseName \\
+\midrule
+1 & Computer Science & CS101 & Intro to Programming \\
+1 & Computer Science & MA101 & Calculus \\
+2 & Mathematics & CS101 & Intro to Programming \\
+2 & Mathematics & MA101 & Calculus \\
+\bottomrule
+\end{tabular}
+\caption{Result of $\mathit{Departments} \times \mathit{Courses}$}
+\label{tab:cartesian_result}
+\end{table}
+
+Notice how each row from \texttt{Departments} is paired with each row from \texttt{Courses}. The number of rows in the resulting table is the product of the number of rows in the input tables. In this case, 2 x 2 = 4.
+
+\textbf{Important Note:} The Cartesian product is often used conceptually as the basis for joins (followed by a selection). Directly using the Cartesian product without a subsequent selection can often lead to very large and potentially meaningless results and is inefficient. It's usually best to use specific join operations.
+
+\subsection{Rename ($\rho$)}
+
+The rename operation, denoted by $\rho$, renames a relation or its attributes. It allows you to change the name of a table or column, which is especially useful for self-joins or when combining results.
+
+\textbf{Syntax:}
+\begin{itemize}
+    \item $\rho_{\mathit{NewName}}(\mathit{R})$ (Renames the relation R to NewName)
+    \item $\rho_{\textit{NewAttr1, NewAttr2, ...}}(\mathit{R})$ (Renames attributes of R in order)
+    \item $\rho_{\mathit{NewName}(\textit{NewAttr1, NewAttr2, ...})} (\mathit{R})$ (Renames relation R and its attributes)
+\end{itemize}
+
+where:
+\begin{itemize}
+    \item $\rho$ is the rename operator.
+    \item $\mathit{NewName}$ is the new name for the relation.
+    \item $\textit{NewAttr1, NewAttr2, ...}$ are the new names for the attributes (must match the arity and be in order).
+    \item $\mathit{R}$ is the relation (table).
+\end{itemize}
+
+\textbf{Example:}
+
+Using the \texttt{Students} relation from Table \ref{tab:students}:
+
+To rename the relation to \texttt{EnrolledStudents}:
+$\rho_{\mathit{EnrolledStudents}}(\mathit{Students})$
+
+To rename the attributes \texttt{StudentID} to \texttt{ID} and \texttt{Name} to \texttt{StudentName}:
+$\rho_{\textit{ID, StudentName, Major, GPA}}(\mathit{Students})$
+
+To rename the relation to \texttt{EnrolledStudents} and attributes \texttt{StudentID} to \texttt{ID} and \texttt{Name} to \texttt{StudentName}:
+$\rho_{\mathit{EnrolledStudents}(\textit{ID, StudentName, Major, GPA})}(\mathit{Students})$
+
+\section{Derived Relational Algebra Operations}
+
+Derived operations are operations that can be expressed in terms of the core operations. They are often included for convenience and to simplify query expressions.
+
+\subsection{Intersection ($\cap$)}
+
+The intersection operation, denoted by $\cap$, returns tuples that are present in both relations.
+
+\textbf{Syntax:} $\mathit{R} \cap \mathit{S}$
+
+where:
+\begin{itemize}
+    \item $\mathit{R}$ and $\mathit{S}$ are union-compatible relations (tables).
+\end{itemize}
+
+\textbf{Derivation using Core Operations:}
+
+$\mathit{R} \cap \mathit{S} = \mathit{R} - (\mathit{R} - \mathit{S})$
+(Also equivalent to $\mathit{S} - (\mathit{S} - \mathit{R})$). % Removed incorrect join equivalence
+
+This means: The intersection of R and S is equal to R minus (R minus S). We're removing from R all those tuples that *aren't* in S, leaving us with only the tuples that *are* common to both R and S.
+
+\textbf{Example:}
+
+Using the \texttt{Undergraduates} (Table \ref{tab:undergraduates}) and \texttt{Graduates} (Table \ref{tab:graduates}) relations:
+
+$\mathit{Undergraduates} \cap \mathit{Graduates}$
+
+The result would be:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+StudentID & Name \\
+\midrule
+202 & Jane \\
+\bottomrule
+\end{tabular}
+\caption{Result of $\mathit{Undergraduates} \cap \mathit{Graduates}$}
+\label{tab:intersection_result}
+\end{table}
+
+\subsection{Join ($\Join$)}
+
+The join operation combines tuples from two relations based on a specified condition. There are several types of joins:
+
+\subsubsection{Theta Join ($\Join_\theta$)}
+
+The theta join, denoted by $\Join_\theta$, combines tuples from two relations that satisfy a given condition $\theta$.
+
+\textbf{Syntax:} $\mathit{R} \Join_{\theta} \mathit{S}$
+
+where:
+\begin{itemize}
+    \item $\mathit{R}$ and $\mathit{S}$ are relations (tables).
+    \item $\theta$ is a condition (predicate) involving attributes from both $\mathit{R}$ and $\mathit{S}$.
+\end{itemize}
+
+\textbf{Derivation using Core Operations:}
+
+$\mathit{R} \Join_{\theta} \mathit{S} = \sigma_{\theta}(\mathit{R} \times \mathit{S})$
+
+This means: The theta join is equivalent to taking the Cartesian product of R and S and then selecting only the tuples that satisfy the condition $\theta$.
+
+\textbf{Example:}
+
+Consider two relations: \texttt{Employees} and \texttt{Departments2}.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+EmpID & EmpName & DeptID \\
+\midrule
+1 & Alice & 10 \\
+2 & Bob & 20 \\
+3 & Charlie & 10 \\
+\bottomrule
+\end{tabular}
+\caption{The \texttt{Employees} Relation (for Join)}
+\label{tab:employees_join}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+DeptID & DeptName & Location \\
+\midrule
+10 & Sales & New York \\
+20 & Marketing & London \\
+30 & Engineering & San Francisco \\
+\bottomrule
+\end{tabular}
+\caption{The \texttt{Departments2} Relation (for Join)}
+\label{tab:departments2_join}
+\end{table}
+
+To join \texttt{Employees} and \texttt{Departments2} where \texttt{Employees.DeptID} = \texttt{Departments2.DeptID}:
+
+$\mathit{Employees} \Join_{\textit{Employees.DeptID} = \textit{Departments2.DeptID}} \mathit{Departments2}$
+
+The result would be:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+EmpID & EmpName & Employees.DeptID & Departments2.DeptID & DeptName & Location \\
+\midrule
+1 & Alice & 10 & 10 & Sales & New York \\
+2 & Bob & 20 & 20 & Marketing & London \\
+3 & Charlie & 10 & 10 & Sales & New York \\
+\bottomrule
+\end{tabular}
+\caption{Result of Theta Join on \texttt{DeptID}}
+\label{tab:theta_join_result}
+\end{table}
+Note: It's often useful to use rename ($\rho$) to avoid duplicate attribute names like `DeptID` if not needed.
+
+\subsubsection{Equijoin}
+
+An equijoin is a special case of the theta join where the condition $\theta$ only involves equality comparisons (=). The previous example is an equijoin.
+
+\subsubsection{Natural Join ($\Join$)}
+
+The natural join, denoted by $\Join$, is a special case of the equijoin. It automatically joins on all attributes that have the same name in both relations and eliminates duplicate attributes from the result.
+
+\textbf{Syntax:} $\mathit{R} \Join \mathit{S}$
+
+where:
+\begin{itemize}
+    \item $\mathit{R}$ and $\mathit{S}$ are relations (tables) with one or more common attribute names.
+\end{itemize}
+
+\textbf{Example:}
+
+Using the \texttt{Employees} (Table \ref{tab:employees_join}) and \texttt{Departments2} (Table \ref{tab:departments2_join}) relations:
+
+$\mathit{Employees} \Join \mathit{Departments2}$
+
+The common attribute is \texttt{DeptID}. The result would be:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+EmpID & EmpName & DeptID & DeptName & Location \\
+\midrule
+1 & Alice & 10 & Sales & New York \\
+2 & Bob & 20 & Marketing & London \\
+3 & Charlie & 10 & Sales & New York \\
+\bottomrule
+\end{tabular}
+\caption{Result of Natural Join on \texttt{DeptID}}
+\label{tab:natural_join_result}
+\end{table}
+
+Notice that only one \texttt{DeptID} column remains.
+
+\subsubsection{Outer Joins}
+
+Outer joins extend the results of an inner join (like Theta or Natural Join) by preserving tuples from one or both relations that do not have matching tuples in the other relation, filling in missing attributes with null values. Relational algebra doesn't have standard widely-adopted symbols for outer joins, so they are often described textually or defined using extensions. SQL provides explicit syntax for them.
+
+\textbf{Left Outer Join:} Preserves all tuples from the left relation ($\mathit{R}$). If a tuple in $\mathit{R}$ has no match in $\mathit{S}$ based on the join condition, it still appears in the result, with attributes from $\mathit{S}$ set to NULL.
+
+\textbf{Right Outer Join:} Preserves all tuples from the right relation ($\mathit{S}$). If a tuple in $\mathit{S}$ has no match in $\mathit{R}$, it still appears in the result, with attributes from $\mathit{R}$ set to NULL.
+
+\textbf{Full Outer Join:} Preserves all tuples from both relations ($\mathit{R}$ and $\mathit{S}$). Tuples without matches in the other relation appear with NULLs for the attributes from that other relation.
+
+\textbf{Example:}
+
+Consider the \texttt{Employees} and \texttt{Departments2} relations again, but let's add a department without employees and assume we want to join on \texttt{DeptID}.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+EmpID & EmpName & DeptID \\
+\midrule
+1 & Alice & 10 \\
+2 & Bob & 20 \\
+3 & Charlie & 10 \\
+\bottomrule
+\end{tabular}
+\caption{The \texttt{Employees} Relation (for Outer Join)}
+\label{tab:employees_outer_join}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+DeptID & DeptName & Location \\
+\midrule
+10 & Sales & New York \\
+20 & Marketing & London \\
+30 & Engineering & San Francisco \\
+40 & HR & Chicago \\ % Department with no employees in the other table
+\bottomrule
+\end{tabular}
+\caption{The \texttt{Departments2} Relation (with extra Dept for Outer Join)}
+\label{tab:departments2_outer_join}
+\end{table}
+
+\textbf{Left Outer Join Result (Conceptual):} (\texttt{Employees} LEFT OUTER JOIN \texttt{Departments2} ON \texttt{Employees.DeptID} = \texttt{Departments2.DeptID})
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+EmpID & EmpName & Employees.DeptID & Departments2.DeptID & DeptName & Location \\
+\midrule
+1 & Alice & 10 & 10 & Sales & New York \\
+2 & Bob & 20 & 20 & Marketing & London \\
+3 & Charlie & 10 & 10 & Sales & New York \\
+% No employees without departments in this example data
+\bottomrule
+\end{tabular}
+\caption{Result of Left Outer Join (Employees LEFT JOIN Departments2)}
+\label{tab:left_outer_join_result}
+\end{table}
+\textit{(This output preserves all rows from \texttt{Employees} and finds matching \texttt{Departments2}. If there were an employee with a DeptID not in Departments2, they would appear here with NULLs for DeptName and Location.)}
+
+\textbf{Right Outer Join Result (Conceptual):} (\texttt{Employees} RIGHT OUTER JOIN \texttt{Departments2} ON \texttt{Employees.DeptID} = \texttt{Departments2.DeptID})
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+EmpID & EmpName & Employees.DeptID & Departments2.DeptID & DeptName & Location \\
+\midrule
+1 & Alice & 10 & 10 & Sales & New York \\
+2 & Bob & 20 & 20 & Marketing & London \\
+3 & Charlie & 10 & 10 & Sales & New York \\
+NULL & NULL & NULL & 30 & Engineering & San Francisco \\ % Dept 30 has no match
+NULL & NULL & NULL & 40 & HR & Chicago \\ % Dept 40 has no match
+\bottomrule
+\end{tabular}
+\caption{Result of Right Outer Join (Employees RIGHT JOIN Departments2)}
+\label{tab:right_outer_join_result}
+\end{table}
+\textit{(This output preserves all rows from \texttt{Departments2}. Departments 30 and 40 had no matching employees, so employee attributes are NULL.)}
+
+\textbf{Full Outer Join Result (Conceptual):} (\texttt{Employees} FULL OUTER JOIN \texttt{Departments2} ON \texttt{Employees.DeptID} = \texttt{Departments2.DeptID})
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+EmpID & EmpName & Employees.DeptID & Departments2.DeptID & DeptName & Location \\
+\midrule
+1 & Alice & 10 & 10 & Sales & New York \\
+2 & Bob & 20 & 20 & Marketing & London \\
+3 & Charlie & 10 & 10 & Sales & New York \\
+NULL & NULL & NULL & 30 & Engineering & San Francisco \\ % Unmatched Dept
+NULL & NULL & NULL & 40 & HR & Chicago \\ % Unmatched Dept
+% If there was an employee with no matching dept, they would appear here too
+\bottomrule
+\end{tabular}
+\caption{Result of Full Outer Join (Employees FULL JOIN Departments2)}
+\label{tab:full_outer_join_result}
+\end{table}
+\textit{(This output preserves all rows from both tables. Unmatched rows from either side appear with NULLs for the attributes of the other side.)}
+
+
+\subsection{Division ($\div$)}
+
+The division operation, denoted by $\div$, is used for queries that involve the concept of "for all". It returns tuples from one relation that are associated with *all* tuples in another relation. It's often used to answer queries like "Find all students who have taken *all* required courses."
+
+\textbf{Syntax:} $\mathit{R}(A, B) \div \mathit{S}(B)$
+
+where:
+\begin{itemize}
+    \item $\mathit{R}$ is a relation with attributes $A$ and $B$ (where $A$ and $B$ can represent sets of attributes).
+    \item $\mathit{S}$ is a relation with attributes $B$.
+    \item The attributes $B$ in $\mathit{S}$ must be a subset of the attributes in $\mathit{R}$.
+    \item The result relation has attributes $A$ (i.e., attributes in $\mathit{R}$ but not in $\mathit{S}$).
+\end{itemize}
+
+\textbf{Derivation using Core Operations:}
+
+$\mathit{R} \div \mathit{S} = \pi_A(\mathit{R}) - \pi_A((\pi_A(\mathit{R}) \times \mathit{S}) - \mathit{R})$
+
+Let's break this down:
+\begin{enumerate}
+    \item $\pi_A(\mathit{R})$: Find all possible values (or combinations) for the attributes $A$ present in $\mathit{R}$.
+    \item $\pi_A(\mathit{R}) \times \mathit{S}$: Create all possible combinations of $A$ values from step 1 with the $B$ values from $\mathit{S}$. This represents all the pairs $(a, b)$ that *should* exist if $a$ is associated with every $b$.
+    \item $(\pi_A(\mathit{R}) \times \mathit{S}) - \mathit{R}$: Find the combinations from step 2 that are *not* present in the original relation $\mathit{R}$. These are the "missing" associations.
+    \item $\pi_A((\pi_A(\mathit{R}) \times \mathit{S}) - \mathit{R})$: Project onto $A$ to find which $A$ values have at least one missing association from $\mathit{S}$.
+    \item $\pi_A(\mathit{R}) - \pi_A(\dots)$: Subtract the $A$ values with missing associations (step 4) from the set of all possible $A$ values (step 1). The result is the set of $A$ values that are associated with *all* $B$ values in $\mathit{S}$.
+\end{enumerate}
+
+\textbf{Example:}
+
+Consider two relations: \texttt{Enrolled} and \texttt{RequiredCourses}.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+StudentID & CourseID \\
+\midrule
+101 & CS101 \\
+101 & CS201 \\
+102 & CS101 \\
+102 & CS201 \\
+102 & MA101 \\ % Extra course for 102
+103 & CS101 \\ % Only one required course for 103
+\bottomrule
+\end{tabular}
+\caption{The \texttt{Enrolled} Relation}
+\label{tab:enrolled_division}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}c@{}}
+\toprule
+CourseID \\
+\midrule
+CS101 \\
+CS201 \\
+\bottomrule
+\end{tabular}
+\caption{The \texttt{RequiredCourses} Relation}
+\label{tab:required_courses_division}
+\end{table}
+
+$\mathit{Enrolled}(\textit{StudentID}, \textit{CourseID}) \div \mathit{RequiredCourses}(\textit{CourseID})$
+
+This operation finds all students (StudentID) who are enrolled in *all* the courses listed in \texttt{RequiredCourses}.
+
+The result would be:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}c@{}}
+\toprule
+StudentID \\
+\midrule
+101 \\
+102 \\
+\bottomrule
+\end{tabular}
+\caption{Result of $\mathit{Enrolled} \div \mathit{RequiredCourses}$}
+\label{tab:division_result}
+\end{table}
+
+Student 101 and 102 are enrolled in both CS101 and CS201. Student 103 is only enrolled in CS101, so they are not included in the result.
+
+\section{Complex Queries with Relational Algebra}
+
+Relational algebra operations can be combined sequentially or nested to express complex queries.
+
+\textbf{Example 1:}
+
+Find the names of all students who are majoring in Computer Science and have a GPA greater than 3.7.
+
+Using the \texttt{Students} relation from Table \ref{tab:students}:
+
+$\pi_{\textit{Name}}(\sigma_{\textit{Major} = \text{'Computer Science'} \land \textit{GPA} > 3.7}(\mathit{Students}))$
+
+This query first selects the students who meet the specified criteria (Computer Science major and GPA > 3.7) using $\sigma$, and then projects only their names using $\pi$.
+
+The result would be:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}c@{}}
+\toprule
+Name \\
+\midrule
+Charlie \\
+\bottomrule
+\end{tabular}
+\caption{Result of finding names of top CS students}
+\label{tab:complex_query1_result}
+\end{table}
+
+\textbf{Example 2:}
+
+Find the names of all employees who work in the 'Sales' department.
+
+Using the \texttt{Employees} relation (Table \ref{tab:employees_join}) and a simplified \texttt{Departments} relation (different from \texttt{Departments2} used earlier).
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+EmpID & EmpName & DeptID \\
+\midrule
+1 & Alice & 10 \\
+2 & Bob & 20 \\
+3 & Charlie & 10 \\
+\bottomrule
+\end{tabular}
+\caption{The \texttt{Employees} Relation (for Complex Query)}
+\label{tab:employees_complex_query}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+DeptID & DeptName \\
+\midrule
+10 & Sales \\
+20 & Marketing \\
+\bottomrule
+\end{tabular}
+\caption{Simplified \texttt{Departments} Relation (for Complex Query)}
+\label{tab:departments_complex_query}
+\end{table}
+
+$\pi_{\textit{EmpName}}( \mathit{Employees} \Join (\sigma_{\textit{DeptName} = \text{'Sales'}}(\mathit{Departments})) )$
+
+This query first selects the 'Sales' department row(s) from the \texttt{Departments} relation ($\sigma$). Then, it performs a natural join ($\Join$) between the \texttt{Employees} relation and the result of the selection (which will match on the common attribute \texttt{DeptID}). Finally, it projects ($\pi$) the \texttt{EmpName} from the result of the join.
+
+The result would be:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}c@{}}
+\toprule
+EmpName \\
+\midrule
+Alice \\
+Charlie \\
+\bottomrule
+\end{tabular}
+\caption{Result of finding names of Sales employees}
+\label{tab:complex_query2_result}
+\end{table}
+
+\section{Limitations of Relational Algebra}
+
+While relational algebra provides a powerful formal foundation for database queries, it has some limitations in its pure form:
+
+\begin{itemize}
+    \item \textbf{Lack of Aggregation:} Relational algebra does not include built-in operators for aggregate functions such as \texttt{SUM}, \texttt{AVG}, \texttt{MIN}, \texttt{MAX}, and \texttt{COUNT}. These operations require extensions or are handled directly in query languages like SQL.
+    \item \textbf{No Ordering:} Relational algebra operates on sets (or bags in some variations), which are inherently unordered. It does not define or guarantee any specific order for the tuples in a result relation. Ordering is typically specified externally (e.g., using \texttt{ORDER BY} in SQL).
+    \item \textbf{No Computational Capabilities:} Relational algebra primarily focuses on set-oriented data retrieval and manipulation based on existing values. It lacks general computational capabilities beyond basic comparisons used in selection and join conditions.
+    \item \textbf{Limited Expressiveness for Certain Queries:} Some types of queries, particularly recursive queries (e.g., finding all subordinates of a manager in an organizational hierarchy), are difficult or impossible to express using only standard relational algebra operations. SQL provides extensions like recursive CTEs for such cases.
+\end{itemize}
+
+Despite these limitations, relational algebra remains fundamental for understanding query processing, optimization, and the logical structure of relational database operations.
+
+\chapter{PostgreSQL}
+
+PostgreSQL is a powerful, open-source object-relational database system (ORDBMS). It has earned a strong reputation for reliability, feature robustness, data integrity, and adherence to SQL standards. PostgreSQL supports a wide range of features, including complex queries, foreign keys, triggers, views, transactional integrity, multi-version concurrency control (MVCC), advanced data types, sophisticated locking mechanisms, and support for stored procedures and functions in various languages. It is a popular choice for applications ranging from small projects to large, mission-critical systems. We will cover the fundamentals of using PostgreSQL through its implementation of SQL.
+
+\section{Installation and Setup}
+
+Detailed, platform-specific instructions for installing PostgreSQL can be found on the official PostgreSQL website: \href{https://www.postgresql.org/download/}{https://www.postgresql.org/download/}. Installation typically involves downloading the appropriate installer or package for your operating system (Windows, macOS, Linux variants) and following the setup prompts. During installation, you will usually be asked to set a password for the default superuser, typically named \texttt{postgres}, and configure network settings (like the port, usually 5432) and locale settings.
+
+\subsection{Connecting to PostgreSQL}
+
+Once PostgreSQL is installed, running, and configured, you can connect to it using various client tools. Some common options include:
+
+\begin{itemize}
+    \item \textbf{psql:} The interactive command-line terminal for PostgreSQL. It's a powerful and versatile tool included with the standard distribution, suitable for scripting and direct interaction.
+    \item \textbf{pgAdmin:} A popular open-source graphical administration and development tool for PostgreSQL. It provides a user-friendly interface for managing databases, schemas, tables, users, permissions, and executing queries.
+    \item \textbf{Third-party GUI tools:} Many other graphical database clients support PostgreSQL, such as DBeaver (universal), DataGrip (commercial, by JetBrains), Azure Data Studio (with PostgreSQL extension), etc.
+    \item \textbf{Programming Language Connectors/Drivers:} Libraries for languages like Python (psycopg2, asyncpg), Java (JDBC driver), Node.js (node-postgres), etc., allow applications to connect and interact with the database.
+\end{itemize}
+
+For this book, we will primarily use \texttt{psql} to demonstrate SQL commands.
+
+To connect to a locally running PostgreSQL server using \texttt{psql} from your terminal or command prompt, you might use a command like this:
+
+\begin{lstlisting}[style=bashstyle, caption={Connecting via psql}, label=lst:psql_connect]
+# Connect as user 'postgres' to the database 'postgres' on localhost
+psql -U postgres -d postgres -h localhost
+\end{lstlisting}
+
+This command attempts to connect to the PostgreSQL server running on \texttt{localhost} as the user \texttt{postgres} and targets the default database also named \texttt{postgres}. You will likely be prompted for the password you set for the \texttt{postgres} user during installation. If connecting to a different database or as a different user, adjust the \texttt{-d} and \texttt{-U} options accordingly.
+
+Inside \texttt{psql}, you can use meta-commands (starting with a backslash \texttt{\textbackslash}) for database operations. For example, to list databases, use \verb|\l|; to list tables in the current database, use \verb|\dt|; to connect to a different database, use \verb|\c dbname|. Use \verb|\q| to quit \texttt{psql}.
+
+\section{Basic SQL Commands}
+
+SQL (Structured Query Language) is the standard language for defining, manipulating, and querying data in relational databases. PostgreSQL implements a large part of the SQL standard along with its own extensions.
+
+\subsection{Creating a Database}
+
+To create a new database within the PostgreSQL instance, connect first (e.g., to the default \texttt{postgres} database) and then use the \texttt{CREATE DATABASE} command:
+
+\begin{lstlisting}[caption={Creating a Database}, label=lst:create_db]
+CREATE DATABASE mydatabase;
+\end{lstlisting}
+
+This command creates a new, empty database named \texttt{mydatabase}. Database names should follow identifier rules (typically starting with a letter or underscore, followed by letters, numbers, or underscores).
+
+After creating the database, you can connect directly to it using \texttt{psql}'s \verb|\c| command:
+
+% Use specific options for psql commands
+\begin{lstlisting}[language=SQL, basicstyle=\ttfamily\small, frame=none, numbers=none] 
+\c mydatabase
+\end{lstlisting}
+% You are now connected to database "mydatabase" as user "youruser".
+% Note: The above uses specific lstlisting options as it's not pure SQL
+
+\subsection{Creating a Table}
+
+Once connected to the desired database, use the \texttt{CREATE TABLE} command to define the structure of a table:
+
+\begin{lstlisting}[caption={Creating the Students Table}, label=lst:create_table_students]
+CREATE TABLE Students (
+    StudentID SERIAL PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL,
+    Major VARCHAR(255),
+    GPA DECIMAL(3, 2), -- Precision 3, Scale 2 (e.g., 9.99)
+    EnrollmentDate DATE DEFAULT CURRENT_DATE
+);
+\end{lstlisting}
+
+This command creates a table named \texttt{Students} with the following columns:
+
+\begin{itemize}
+    \item \texttt{StudentID}: An integer column that automatically increments for each new row (using the \texttt{SERIAL} pseudo-type, which creates a sequence). It's also designated as the \texttt{PRIMARY KEY}, meaning values must be unique and not null, serving to uniquely identify each row.
+    \item \texttt{Name}: A variable-length string column with a maximum length of 255 characters. The \texttt{NOT NULL} constraint ensures this column must have a value.
+    \item \texttt{Major}: A variable-length string column, allowing NULL values.
+    \item \texttt{GPA}: A decimal number column suitable for exact fractional values. \texttt{DECIMAL(3,2)} allows up to 3 total digits, with 2 digits after the decimal point.
+    \item \texttt{EnrollmentDate}: A date column. The \texttt{DEFAULT CURRENT\_DATE} clause automatically sets the value to the current date if no value is provided during insertion.
+\end{itemize}
+
+\textbf{Common PostgreSQL Data Types:}
+
+PostgreSQL supports a rich set of data types, including:
+
+\begin{itemize}
+    \item Numeric Types: \texttt{INTEGER} (or \texttt{INT}), \texttt{SMALLINT}, \texttt{BIGINT}, \texttt{DECIMAL} (or \texttt{NUMERIC}), \texttt{REAL}, \texttt{DOUBLE PRECISION}, \texttt{SERIAL}, \texttt{BIGSERIAL}.
+    \item Character Types: \texttt{VARCHAR(n)}, \texttt{CHAR(n)}, \texttt{TEXT}.
+    \item Date/Time Types: \texttt{DATE}, \texttt{TIME}, \texttt{TIMESTAMP} (with or without time zone), \texttt{INTERVAL}.
+    \item Boolean Type: \texttt{BOOLEAN} (can store TRUE, FALSE, or NULL).
+    \item Geometric Types: \texttt{POINT}, \texttt{LINE}, \texttt{POLYGON}, etc.
+    \item Network Address Types: \texttt{INET}, \texttt{CIDR}, \texttt{MACADDR}.
+    \item UUID Type: \texttt{UUID}.
+    \item JSON Types: \texttt{JSON}, \texttt{JSONB} (binary, indexed format).
+    \item Array Types: Any data type can have an array version (e.g., \texttt{INTEGER[]}, \texttt{TEXT[]}).
+\end{itemize}
+
+\subsection{Inserting Data}
+
+To add rows (tuples) into a table, use the \texttt{INSERT INTO} command:
+
+\begin{lstlisting}[caption={Inserting data into Students}, label=lst:insert_students]
+-- Specify columns and corresponding values
+INSERT INTO Students (Name, Major, GPA) VALUES ('Alice', 'Computer Science', 3.8);
+
+-- Can insert multiple rows at once
+INSERT INTO Students (Name, Major, GPA, EnrollmentDate) VALUES
+    ('Bob', 'Mathematics', 3.5, '2023-09-01'),
+    ('Charlie', 'Computer Science', 3.9, '2022-09-05');
+
+-- If providing values for all columns in order, column list can be omitted
+-- (though explicit is usually better). StudentID is SERIAL, so it's auto-generated.
+-- We provide NULL for GPA for the last student.
+INSERT INTO Students VALUES (DEFAULT, 'David', 'Physics', NULL, '2023-01-15');
+\end{lstlisting}
+
+These commands insert four rows into the \texttt{Students} table. The \texttt{StudentID} is automatically generated for each row due to the \texttt{SERIAL} type. The \texttt{EnrollmentDate} for Alice will use the default (current date at time of insert).
+
+\subsection{Selecting Data}
+
+To retrieve data from a table, use the \texttt{SELECT} command:
+
+\begin{lstlisting}[caption={Selecting data from Students}, label=lst:select_students]
+-- Select all columns (*) from all rows
+SELECT * FROM Students;
+
+-- Select specific columns
+SELECT Name, Major FROM Students;
+
+-- Filter rows using a WHERE clause
+SELECT StudentID, Name, GPA FROM Students WHERE Major = 'Computer Science';
+
+-- Filter with multiple conditions
+SELECT Name, GPA FROM Students WHERE Major = 'Computer Science' AND GPA > 3.8;
+
+-- Order the results using ORDER BY (ASC is default, DESC for descending)
+SELECT Name, GPA FROM Students ORDER BY GPA DESC;
+
+-- Limit the number of rows returned
+SELECT Name, GPA FROM Students ORDER BY GPA DESC LIMIT 2;
+\end{lstlisting}
+
+\subsection{Updating Data}
+
+To modify existing data in a table, use the \texttt{UPDATE} command with a \texttt{WHERE} clause to specify which rows to change:
+
+\begin{lstlisting}[caption={Updating data in Students}, label=lst:update_students]
+-- Update Bob's GPA (assuming his StudentID is 2, check first!)
+UPDATE Students
+SET GPA = 3.6, Major = 'Applied Mathematics'
+WHERE Name = 'Bob'; -- It's safer to use the Primary Key if known
+
+-- Example using StudentID (let's assume Alice's ID is 1)
+UPDATE Students
+SET GPA = 3.85
+WHERE StudentID = 1;
+
+-- Update GPA for all Math majors
+UPDATE Students
+SET GPA = GPA * 1.05 -- Give a 5% GPA boost (example calculation)
+WHERE Major = 'Mathematics';
+\end{lstlisting}
+\textbf{Caution:} Omitting the \texttt{WHERE} clause in an \texttt{UPDATE} statement will modify \emph{all} rows in the table!
+
+\subsection{Deleting Data}
+
+To remove rows from a table, use the \texttt{DELETE FROM} command, typically with a \texttt{WHERE} clause:
+
+\begin{lstlisting}[caption={Deleting data from Students}, label=lst:delete_students]
+-- Delete the student named David
+DELETE FROM Students
+WHERE Name = 'David';
+
+-- Delete all students with NULL GPA
+DELETE FROM Students
+WHERE GPA IS NULL;
+\end{lstlisting}
+\textbf{Caution:} Omitting the \texttt{WHERE} clause in a \texttt{DELETE} statement will remove \emph{all} rows from the table!
+
+\subsection{Dropping Tables and Databases}
+
+To permanently remove a table and all its data:
+
+\begin{lstlisting}[caption={Dropping a Table}, label=lst:drop_table]
+DROP TABLE Students;
+\end{lstlisting}
+
+To permanently remove an entire database and all its contents (tables, views, functions, etc.):
+
+\begin{lstlisting}[caption={Dropping a Database}, label=lst:drop_db]
+-- Must be connected to a DIFFERENT database (e.g., postgres)
+-- Ensure no active connections to 'mydatabase' exist
+DROP DATABASE mydatabase;
+\end{lstlisting}
+\textbf{Extreme Caution:} \texttt{DROP TABLE} and \texttt{DROP DATABASE} are irreversible operations. Use them with extreme care, especially in production environments. Ensure you have backups.
+
+\section{Advanced SQL Concepts}
+
+Now that we've covered the basics (often called CRUD: Create, Read, Update, Delete), let's explore some more advanced SQL concepts frequently used in PostgreSQL.
+
+\subsection{Joins}
+
+Joins are fundamental for combining data from multiple related tables based on common columns (usually foreign keys linking to primary keys).
+
+Let's set up example tables: \texttt{Students} and \texttt{Enrollments}.
+
+\begin{lstlisting}[caption={Setup for Join Examples}, label=lst:setup_join_tables]
+CREATE TABLE Students (
+    StudentID SERIAL PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL,
+    Major VARCHAR(255)
+);
+
+CREATE TABLE Courses (
+    CourseID VARCHAR(10) PRIMARY KEY, -- e.g., 'CS101'
+    CourseName VARCHAR(255) NOT NULL,
+    Credits INTEGER
+);
+
+CREATE TABLE Enrollments (
+    EnrollmentID SERIAL PRIMARY KEY,
+    StudentID INTEGER REFERENCES Students(StudentID), -- Foreign Key
+    CourseID VARCHAR(10) REFERENCES Courses(CourseID), -- Foreign Key
+    Grade CHAR(1) -- e.g., 'A', 'B'
+);
+
+-- Sample Data
+INSERT INTO Students (Name, Major) VALUES
+    ('Alice', 'Computer Science'), ('Bob', 'Mathematics'), ('Charlie', 'Physics');
+-- StudentIDs will likely be 1, 2, 3
+
+INSERT INTO Courses (CourseID, CourseName, Credits) VALUES
+    ('CS101', 'Intro to Programming', 3),
+    ('MA101', 'Calculus I', 4),
+    ('PH101', 'Physics I', 4);
+
+INSERT INTO Enrollments (StudentID, CourseID, Grade) VALUES
+    (1, 'CS101', 'A'), -- Alice takes CS101
+    (1, 'MA101', 'B'), -- Alice takes MA101
+    (2, 'MA101', 'A'), -- Bob takes MA101
+    (1, 'PH101', NULL); -- Alice takes PH101, grade pending
+-- Charlie is not enrolled in anything yet
+\end{lstlisting}
+
+\textbf{Inner Join:}
+Returns only rows where the join condition is met in \emph{both} tables.
+
+\begin{lstlisting}[caption={Inner Join Example}, label=lst:inner_join]
+-- Get student names and the names of courses they are enrolled in
+SELECT s.Name, c.CourseName, e.Grade
+FROM Students s
+INNER JOIN Enrollments e ON s.StudentID = e.StudentID
+INNER JOIN Courses c ON e.CourseID = c.CourseID;
+\end{lstlisting}
+\textit{(This will show Alice's and Bob's enrollments. Charlie won't appear as he has no entries in Enrollments. Courses not taken won't appear.)}
+
+\textbf{Left Outer Join (or LEFT JOIN):}
+Returns all rows from the \emph{left} table (the one listed first, \texttt{Students} here) and matching rows from the \emph{right} table (\texttt{Enrollments}). If a row in the left table has no match in the right table, the columns from the right table will be NULL.
+
+\begin{lstlisting}[caption={Left Outer Join Example}, label=lst:left_join]
+-- List all students and the courses they are enrolled in, including students not enrolled in any course
+SELECT s.Name, c.CourseName, e.Grade
+FROM Students s
+LEFT JOIN Enrollments e ON s.StudentID = e.StudentID
+LEFT JOIN Courses c ON e.CourseID = c.CourseID;
+\end{lstlisting}
+\textit{(This will show Alice's and Bob's enrollments, \emph{and} it will show Charlie with NULLs for CourseName and Grade, because he exists in Students but has no matching Enrollments.)}
+
+\textbf{Right Outer Join (or RIGHT JOIN):}
+Returns all rows from the \emph{right} table and matching rows from the \emph{left}. If a row in the right table has no match, columns from the left table will be NULL. (Less common than LEFT JOIN, often can be rewritten as a LEFT JOIN by swapping table order).
+
+\textbf{Full Outer Join (or FULL JOIN):}
+Returns all rows from \emph{both} tables. If a row in one table has no match in the other, the columns from the unmatched table will be NULL.
+
+\begin{lstlisting}[caption={Full Outer Join Example}, label=lst:full_join]
+-- Show all students and all their enrollments,
+-- and also show students with no enrollments,
+-- and also show enrollments potentially referencing non-existent students (if possible)
+SELECT s.Name, c.CourseName
+FROM Students s
+FULL OUTER JOIN Enrollments e ON s.StudentID = e.StudentID
+FULL OUTER JOIN Courses c ON e.CourseID = c.CourseID;
+\end{lstlisting}
+\textit{(This is useful for finding orphans or seeing the complete picture from both sides.)}
+
+\subsection{Subqueries}
+
+A subquery (or inner query) is a query nested inside another SQL query (the outer query). Subqueries can appear in various clauses:
+
+\textbf{Subquery in \texttt{WHERE} clause:} Often used with operators like \texttt{IN}, \texttt{NOT IN}, \texttt{EXISTS}, \texttt{NOT EXISTS}, or comparison operators (\texttt{=}, \texttt{>}, \texttt{<}, etc.) when the subquery returns a single value.
+
+\begin{lstlisting}[caption={Subquery in WHERE Clause}, label=lst:subquery_where]
+-- Find students enrolled in 'Calculus I'
+SELECT Name
+FROM Students
+WHERE StudentID IN (SELECT StudentID FROM Enrollments WHERE CourseID = 'MA101');
+
+-- Find courses that have at least one enrollment
+SELECT CourseName
+FROM Courses
+WHERE EXISTS (SELECT 1 FROM Enrollments WHERE Enrollments.CourseID = Courses.CourseID);
+\end{lstlisting}
+
+\textbf{Subquery in \texttt{SELECT} clause (Scalar Subquery):} Must return a single value (one row, one column). Often correlated with the outer query.
+
+\begin{lstlisting}[caption={Subquery in SELECT Clause}, label=lst:subquery_select]
+-- Show each student's name and the count of courses they are enrolled in
+SELECT
+    s.Name,
+    (SELECT COUNT(*) FROM Enrollments e WHERE e.StudentID = s.StudentID) AS CourseCount
+FROM Students s;
+\end{lstlisting}
+\textit{(Note: Correlated subqueries in the SELECT list can sometimes be inefficient compared to joins or window functions.)}
+
+\textbf{Subquery in \texttt{FROM} clause (Derived Table):} The result of the subquery acts as a temporary table that the outer query can select from. Must be given an alias.
+
+\begin{lstlisting}[caption={Subquery in FROM Clause}, label=lst:subquery_from]
+-- Calculate the average grade value (assuming A=4, B=3 etc.) for CS101
+SELECT AVG(GradeValue)
+FROM (
+    SELECT
+        CASE Grade
+            WHEN 'A' THEN 4.0
+            WHEN 'B' THEN 3.0
+            WHEN 'C' THEN 2.0
+            WHEN 'D' THEN 1.0
+            ELSE 0.0
+        END AS GradeValue
+    FROM Enrollments
+    WHERE CourseID = 'CS101' AND Grade IS NOT NULL
+) AS GradesForCS101; -- Alias is required
+\end{lstlisting}
+
+\subsection{Aggregate Functions}
+
+Aggregate functions perform calculations on a set of rows and return a single summary value. They are often used with the \texttt{GROUP BY} clause.
+
+Common aggregate functions:
+\begin{itemize}
+    \item \texttt{COUNT(*)} or \texttt{COUNT(column)}: Counts rows or non-NULL values.
+    \item \texttt{SUM(column)}: Calculates the sum of values.
+    \item \texttt{AVG(column)}: Calculates the average of values.
+    \item \texttt{MIN(column)}: Finds the minimum value.
+    \item \texttt{MAX(column)}: Finds the maximum value.
+    \item \texttt{STRING\_AGG(column, delimiter)}: Concatenates strings.
+    \item \texttt{ARRAY\_AGG(column)}: Aggregates values into an array.
+\end{itemize}
+
+\begin{lstlisting}[caption={Aggregate Function Examples}, label=lst:aggregate_functions]
+-- Count the total number of students
+SELECT COUNT(*) FROM Students;
+
+-- Calculate the average credits for all courses
+SELECT AVG(Credits) FROM Courses;
+
+-- Find the highest grade achieved in MA101
+SELECT MAX(Grade) FROM Enrollments WHERE CourseID = 'MA101';
+
+-- Count distinct majors
+SELECT COUNT(DISTINCT Major) FROM Students;
+\end{lstlisting}
+
+\subsection{GROUP BY Clause}
+
+The \texttt{GROUP BY} clause groups rows that have the same values in one or more specified columns into a summary row. Aggregate functions are then applied to each group independently.
+
+\begin{lstlisting}[caption={GROUP BY Example}, label=lst:group_by]
+-- Calculate the number of students enrolled in each course
+SELECT CourseID, COUNT(*) AS NumberOfStudents
+FROM Enrollments
+GROUP BY CourseID;
+
+-- Calculate the average grade per course (more complex, requires grade mapping)
+-- Let's find the number of 'A' grades per course instead
+SELECT CourseID, COUNT(*) AS A_GradeCount
+FROM Enrollments
+WHERE Grade = 'A'
+GROUP BY CourseID;
+
+-- Find the number of students in each major
+SELECT Major, COUNT(*) AS StudentCount
+FROM Students
+GROUP BY Major;
+\end{lstlisting}
+\textit{Important Rule:} When using \texttt{GROUP BY}, any column in the \texttt{SELECT} list that is \emph{not} an aggregate function must be included in the \texttt{GROUP BY} clause.
+
+\subsection{HAVING Clause}
+
+The \texttt{HAVING} clause filters the results \emph{after} the \texttt{GROUP BY} clause has been applied and aggregate functions have been computed. It's like a \texttt{WHERE} clause for groups.
+
+\begin{lstlisting}[caption={HAVING Clause Example}, label=lst:having_clause]
+-- Find majors with more than 5 students
+SELECT Major, COUNT(*) AS StudentCount
+FROM Students
+GROUP BY Major
+HAVING COUNT(*) > 5; -- Filter based on the aggregated count
+
+-- Find courses with an average grade better than 'B' (conceptual)
+-- Let's find courses with more than 1 enrollment
+SELECT CourseID, COUNT(*) AS EnrollmentCount
+FROM Enrollments
+GROUP BY CourseID
+HAVING COUNT(*) > 1;
+\end{lstlisting}
+
+\subsection{Common Table Expressions (CTEs)}
+
+A CTE (Common Table Expression), defined using the \texttt{WITH} clause, creates a temporary, named result set that you can reference within a single SQL statement (SELECT, INSERT, UPDATE, DELETE). CTEs improve readability and modularity, especially for complex queries, and are essential for recursive queries.
+
+\begin{lstlisting}[caption={CTE Example}, label=lst:cte_example]
+-- Find students enrolled in courses with 4 credits
+WITH HighCreditCourses AS (
+  SELECT CourseID
+  FROM Courses
+  WHERE Credits = 4
+),
+StudentEnrollmentsInHighCreditCourses AS (
+  SELECT DISTINCT e.StudentID -- Use DISTINCT if student could enroll multiple times
+  FROM Enrollments e
+  JOIN HighCreditCourses hcc ON e.CourseID = hcc.CourseID
+)
+SELECT s.Name
+FROM Students s
+JOIN StudentEnrollmentsInHighCreditCourses se ON s.StudentID = se.StudentID;
+\end{lstlisting}
+This query finds courses with 4 credits (first CTE), then finds students enrolled in those courses (second CTE), and finally selects the names of those students.
+
+\subsection{Window Functions}
+
+Window functions perform calculations across a set of table rows that are somehow related to the current row. Unlike aggregate functions used with \texttt{GROUP BY}, window functions do not collapse rows; they return a value for \emph{each} row based on a "window" of related rows defined by the \texttt{OVER()} clause.
+
+The \texttt{OVER()} clause specifies:
+\begin{itemize}
+    \item \texttt{PARTITION BY column(s)}: Divides rows into partitions (groups). The window function is applied independently to each partition. (Optional)
+    \item \texttt{ORDER BY column(s)}: Defines the order of rows within each partition, which is crucial for ranking and row-comparison functions. (Optional, but often required)
+    \item \texttt{ROWS} or \texttt{RANGE} frame clause: Specifies the subset of rows within the partition to include in the window relative to the current row (e.g., \texttt{ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW}). (Optional)
+\end{itemize}
+
+Common window functions:
+\begin{itemize}
+    \item Ranking: \texttt{ROW\_NUMBER()}, \texttt{RANK()}, \texttt{DENSE\_RANK()}, \texttt{NTILE(n)}
+    \item Aggregate as Window: \texttt{SUM() OVER (...)}, \texttt{AVG() OVER (...)}, \texttt{COUNT() OVER (...)}, etc.
+    \item Value Comparison: \texttt{LAG(col, offset, default)}, \texttt{LEAD(col, offset, default)}, \texttt{FIRST\_VALUE(col)}, \texttt{LAST\_VALUE(col)}
+\end{itemize}
+
+\begin{lstlisting}[caption={Window Function Example (Ranking)}, label=lst:window_rank]
+-- Rank students within each major based on GPA (assuming we add GPA to Students)
+-- First, let's add GPA to our existing Students table for this example
+ALTER TABLE Students ADD COLUMN GPA DECIMAL(3, 2);
+UPDATE Students SET GPA = 3.8 WHERE StudentID = 1;
+UPDATE Students SET GPA = 3.5 WHERE StudentID = 2;
+-- Let's assume Charlie's ID is 3
+UPDATE Students SET GPA = 3.9 WHERE StudentID = 3;
+-- Let's add another CS student
+INSERT INTO Students (Name, Major, GPA) VALUES ('Diane', 'Computer Science', 3.8);
+
+-- Now the query
+SELECT
+    Name,
+    Major,
+    GPA,
+    RANK() OVER (PARTITION BY Major ORDER BY GPA DESC NULLS LAST) AS RankInMajor,
+    DENSE_RANK() OVER (PARTITION BY Major ORDER BY GPA DESC NULLS LAST) AS DenseRankInMajor,
+    ROW_NUMBER() OVER (PARTITION BY Major ORDER BY GPA DESC NULLS LAST) AS RowNumInMajor
+FROM Students;
+\end{lstlisting}
+\begin{itemize}
+    \item \texttt{RANK()} gives the same rank for ties, skips next rank.
+    \item \texttt{DENSE\_RANK()} gives the same rank for ties, does \emph{not} skip next rank.
+    \item \texttt{ROW\_NUMBER()} gives unique numbers even for ties.
+    \item \texttt{PARTITION BY Major} calculates ranks independently for each major.
+    \item \texttt{ORDER BY GPA DESC} determines the ranking criteria (highest GPA first). \texttt{NULLS LAST} handles potential NULL GPAs.
+\end{itemize}
+
+
+\begin{lstlisting}[caption={Window Function Example (Aggregation)}, label=lst:window_agg]
+-- Show each student's GPA and the average GPA for their major
+SELECT
+    Name,
+    Major,
+    GPA,
+    AVG(GPA) OVER (PARTITION BY Major) AS AvgMajorGPA
+FROM Students;
+\end{lstlisting}
+\textit{(This calculates the average GPA for each major (\texttt{PARTITION BY Major}) and displays it alongside each student's individual GPA without collapsing rows.)}
+
+\section{Transactions}
+
+A transaction is a sequence of one or more SQL operations executed as a single logical unit of work. Transactions are crucial for maintaining data integrity, especially in multi-user environments or when performing multi-step operations where all steps must succeed or fail together.
+
+PostgreSQL provides ACID guarantees for transactions:
+\begin{itemize}
+    \item \textbf{Atomicity:} Ensures that all operations within a transaction complete successfully or none of them are applied. If any part fails, the entire transaction is rolled back.
+    \item \textbf{Consistency:} Guarantees that a transaction brings the database from one valid state to another, respecting all defined constraints (like primary keys, foreign keys, check constraints).
+    \item \textbf{Isolation:} Ensures that concurrent transactions do not interfere with each other, making them appear to run sequentially. PostgreSQL uses Multi-Version Concurrency Control (MVCC) to achieve high levels of isolation with good performance. Different isolation levels (\texttt{READ COMMITTED}, \texttt{REPEATABLE READ}, \texttt{SERIALIZABLE}) can be set.
+    \item \textbf{Durability:} Ensures that once a transaction is successfully committed, its changes are permanent and will survive subsequent system failures (e.g., crashes, power outages). This is typically achieved through Write-Ahead Logging (WAL).
+\end{itemize}
+
+Basic Transaction Control Commands:
+\begin{itemize}
+    \item \texttt{BEGIN;} or \texttt{START TRANSACTION;}: Starts a new transaction.
+    \item \texttt{COMMIT;}: Makes all changes within the transaction permanent and ends the transaction.
+    \item \texttt{ROLLBACK;}: Discards all changes made within the transaction and ends the transaction.
+    \item \texttt{SAVEPOINT name;}: Creates a point within the transaction to which you can later roll back.
+    \item \texttt{ROLLBACK TO SAVEPOINT name;}: Rolls back changes to a specific savepoint.
+    \item \texttt{RELEASE SAVEPOINT name;}: Removes a savepoint.
+\end{itemize}
+
+\begin{lstlisting}[caption={Basic Transaction Example}, label=lst:transaction_basic]
+-- Example: Transfer $100 from Account 1 to Account 2
+BEGIN; -- Start the transaction
+
+-- Step 1: Deduct from Account 1
+UPDATE Accounts SET Balance = Balance - 100 WHERE AccountID = 1;
+
+-- Step 2: Add to Account 2
+UPDATE Accounts SET Balance = Balance + 100 WHERE AccountID = 2;
+
+-- (Check for errors or conditions here in application logic)
+
+-- If all steps are successful:
+COMMIT; -- Make the changes permanent
+
+-- If any step failed or condition not met (in application logic):
+-- ROLLBACK; -- Discard all changes made since BEGIN
+\end{lstlisting}
+
+In \texttt{psql}, auto-commit is typically ON by default outside an explicit \texttt{BEGIN}. Inside a \texttt{BEGIN...COMMIT/ROLLBACK} block, auto-commit is off. Application code using database drivers often controls transaction boundaries explicitly.
+
+\section{Indexes}
+
+Indexes are database structures associated with tables or views that speed up data retrieval operations (primarily \texttt{SELECT} queries with \texttt{WHERE} clauses or joins). They work much like an index in the back of a book, allowing the database engine to find specific rows quickly without scanning the entire table (full table scan).
+
+PostgreSQL automatically creates indexes for primary key and unique constraints. You can create additional indexes on other columns to optimize specific query patterns.
+
+\textbf{Creating an Index:}
+
+\begin{lstlisting}[caption={Creating an Index}, label=lst:create_index]
+-- Create an index on the Major column of the Students table
+CREATE INDEX idx_students_major ON Students (Major);
+
+-- Create a multi-column index
+CREATE INDEX idx_enrollments_student_course ON Enrollments (StudentID, CourseID);
+
+-- Create a unique index (enforces uniqueness in addition to speeding lookups)
+CREATE UNIQUE INDEX idx_courses_coursename ON Courses (CourseName);
+\end{lstlisting}
+
+\textbf{When to Use Indexes:}
+\begin{itemize}
+    \item Columns frequently used in \texttt{WHERE} clauses.
+    \item Columns used in \texttt{JOIN} conditions (especially foreign keys).
+    \item Columns frequently used in \texttt{ORDER BY} clauses.
+    \item Columns involved in primary key or unique constraints (usually automatic).
+\end{itemize}
+
+\textbf{When to Avoid or Be Cautious with Indexes:}
+\begin{itemize}
+    \item \textbf{Small Tables:} The overhead of using the index might exceed the time saved compared to a full table scan.
+    \item \textbf{Columns with Low Cardinality:} Columns with very few distinct values (e.g., a boolean flag) might not benefit much from a standard B-tree index (though specialized indexes like Bitmap indexes, not detailed here, might help in some systems, or BRIN in Postgres for correlated data).
+    \item \textbf{Tables with Heavy Write Loads:} Indexes slow down \texttt{INSERT}, \texttt{UPDATE}, and \texttt{DELETE} operations because the index structure also needs to be updated. Over-indexing can hurt write performance significantly.
+    \item \textbf{Columns Rarely Queried:} Indexing columns not used in query conditions wastes space and adds write overhead.
+\end{itemize}
+
+\textbf{Types of Indexes in PostgreSQL:}
+PostgreSQL offers several index types, each suited for different data types and query patterns:
+\begin{itemize}
+    \item \textbf{B-tree:} The default and most common type. Excellent for equality (\texttt{=}) and range (\texttt{<}, \texttt{>}, \texttt{<=}, \texttt{>=}, \texttt{BETWEEN}) queries, and supports sorting (\texttt{ORDER BY}).
+    \item \textbf{Hash:} Optimized only for equality (\texttt{=}) comparisons. Can be faster than B-tree for simple equality but has limitations (e.g., not WAL-logged before PostgreSQL 10, meaning not crash-safe until then; now generally usable but still less versatile than B-tree).
+    \item \textbf{GiST (Generalized Search Tree):} A framework for building indexes over complex data types like geometric data (points, polygons) or for full-text search. Supports nearest-neighbor searches (\texttt{<->} operator) and other specialized operators.
+    \item \textbf{SP-GiST (Space-Partitioned GiST):} An extension of GiST suitable for non-balanced data structures like quadtrees, k-d trees, radix trees. Useful for certain geometric or network address types, or prefix searches.
+    \item \textbf{GIN (Generalized Inverted Index):} Optimized for indexing composite values where elements within the value are queried, such as arrays (\texttt{\& \&}, \texttt{<@}, \texttt{@>}), \texttt{JSONB} documents (\texttt{?}, \texttt{?\&}, \texttt{?|}, \texttt{@>}), or full-text search lexemes (\texttt{@@}). Very efficient for checking if an element exists within a composite type.
+    \item \textbf{BRIN (Block Range Index):} Stores summary information (min/max, potentially others) for ranges of table blocks (pages). Very small footprint and low maintenance cost, extremely effective for large tables where values have a strong physical correlation with their storage location (e.g., timestamp columns that increase monotonically with inserts). Only useful for certain query types.
+\end{itemize}
+
+You can specify the index type using the \texttt{USING} clause:
+\begin{lstlisting}[caption={Specifying Index Type}, label=lst:create_index_type]
+CREATE INDEX idx_name ON table USING GIN (jsonb_column);
+\end{lstlisting}
+
+\textbf{Dropping an Index:}
+
+\begin{lstlisting}[caption={Dropping an Index}, label=lst:drop_index]
+DROP INDEX idx_students_major;
+\end{lstlisting}
+
+\section{Views}
+
+A view is a virtual table based on the result set of a stored SQL query. Views do not store data themselves (unless they are materialized views); they are essentially named queries that can be referenced like regular tables.
+
+\textbf{Creating a View:}
+
+\begin{lstlisting}[caption={Creating a View}, label=lst:create_view]
+-- Create a view showing only Computer Science students and their GPAs
+CREATE VIEW CS_Student_View AS
+SELECT Name, GPA
+FROM Students
+WHERE Major = 'Computer Science';
+
+-- Create a more complex view joining tables
+CREATE VIEW Student_Course_Grades AS
+SELECT s.Name AS StudentName, c.CourseName, e.Grade
+FROM Students s
+JOIN Enrollments e ON s.StudentID = e.StudentID
+JOIN Courses c ON e.CourseID = c.CourseID;
+\end{lstlisting}
+
+\textbf{Querying a View:}
+You query a view exactly like you query a table:
+
+\begin{lstlisting}[caption={Querying a View}, label=lst:query_view]
+-- Select all data from the CS student view
+SELECT * FROM CS_Student_View WHERE GPA > 3.8;
+
+-- Query the complex view
+SELECT * FROM Student_Course_Grades WHERE StudentName = 'Alice';
+\end{lstlisting}
+When you query a view, PostgreSQL essentially substitutes the view's definition into your query (though optimizations occur).
+
+\textbf{Benefits of Using Views:}
+\begin{itemize}
+    \item \textbf{Simplifies Complex Queries:} Encapsulate complex joins or logic into a simple view, making queries against it easier to write and understand.
+    \item \textbf{Improves Security / Access Control:} Grant users access to a view that exposes only specific columns or rows, hiding sensitive data in the underlying tables.
+    \item \textbf{Provides Logical Data Independence:} The underlying table structure can change, but the view definition can sometimes be modified to provide a consistent interface to applications, minimizing application code changes.
+    \item \textbf{Readability and Reusability:} Give meaningful names to common query structures.
+\end{itemize}
+
+\textbf{Updatable Views:}
+Simple views (typically based on a single table, without aggregates, \texttt{GROUP BY}, \texttt{DISTINCT}, window functions, or complex expressions) can sometimes be directly updatable using \texttt{INSERT}, \texttt{UPDATE}, \texttt{DELETE}. However, complex views are generally not directly updatable. PostgreSQL has rules defining view updatability. You can also use \texttt{INSTEAD OF} triggers to define custom update logic for views.
+
+\textbf{Materialized Views:}
+PostgreSQL also supports \texttt{CREATE MATERIALIZED VIEW}. Unlike regular views, materialized views physically store their result set. They are useful for caching the results of complex, expensive queries that don't need real-time data. You need to explicitly \texttt{REFRESH MATERIALIZED VIEW} to update their stored data.
+
+\textbf{Dropping a View:}
+
+\begin{lstlisting}[caption={Dropping a View}, label=lst:drop_view]
+DROP VIEW CS_Student_View;
+DROP VIEW IF EXISTS Student_Course_Grades; -- Avoids error if view doesn't exist
+\end{lstlisting}
+
+\chapter{Database Normalization}
+
+Database normalization is the process of structuring a relational database in accordance with a series of so-called normal forms in order to reduce data redundancy and improve data integrity. It involves organizing the columns (attributes) and tables (relations) of a database to ensure that database integrity constraints can be properly enforced through functional dependencies. This is typically achieved by decomposing large tables into smaller, less redundant tables and defining explicit relationships (foreign keys) between them.
+
+\section{Goals of Normalization}
+
+The primary objectives of database normalization are:
+\begin{itemize}
+    \item \textbf{Minimizing Data Redundancy:} Storing the same piece of information in multiple places leads to wasted storage and potential inconsistencies (update anomalies). Normalization aims to store each logical piece of data only once.
+    \item \textbf{Improving Data Integrity:} Reducing redundancy makes it easier to maintain consistency. When data is updated, it only needs to be changed in one place. This avoids insertion, update, and deletion anomalies.
+    \item \textbf{Simplifying Data Modification:} Normalized schemas make \texttt{INSERT}, \texttt{UPDATE}, and \texttt{DELETE} operations more straightforward and less prone to error, as dependencies are clearly defined and data isn't unnecessarily duplicated.
+    \item \textbf{Providing a Better Foundation for Future Growth:} A well-normalized database is generally easier to modify and extend as application requirements evolve.
+    \item \textbf{Making Queries More Predictable (often):} While normalization can sometimes lead to more joins (which might impact performance), it often makes the relationships between data clearer, leading to more logical and maintainable queries.
+\end{itemize}
+
+\section{Functional Dependencies}
+
+Understanding functional dependencies (FDs) is key to normalization. A functional dependency is a constraint between two sets of attributes in a relation.
+
+\textbf{Definition:}
+An attribute $B$ is functionally dependent on an attribute $A$ (or a set of attributes $A$) if, for every valid instance of the relation, the value of $A$ uniquely determines the value of $B$. This is denoted as $A \rightarrow B$.
+
+In simpler terms: If you know the value(s) in $A$, there can only be one corresponding value (or set of values) for $B$ in any given row.
+
+\textbf{Example:}
+Consider a relation \texttt{Employees(EmpID, Name, DeptID, DeptName, Salary)}.
+Assume the following rules hold:
+\begin{itemize}
+    \item Each employee has a unique ID (\texttt{EmpID}).
+    \item Each employee has one name (\texttt{Name}) and one salary (\texttt{Salary}).
+    \item Each employee belongs to exactly one department (\texttt{DeptID}).
+    \item Each department ID (\texttt{DeptID}) corresponds to exactly one department name (\texttt{DeptName}).
+\end{itemize}
+
+Based on these rules, we have the following FDs:
+\begin{itemize}
+    \item \texttt{EmpID} $\rightarrow$ \texttt{Name} (An employee ID determines the employee's name)
+    \item \texttt{EmpID} $\rightarrow$ \texttt{Salary}
+    \item \texttt{EmpID} $\rightarrow$ \texttt{DeptID} (An employee ID determines their department ID)
+    \item \texttt{DeptID} $\rightarrow$ \texttt{DeptName} (A department ID determines the department's name)
+\end{itemize}
+
+From these, we can also infer:
+\begin{itemize}
+    \item \texttt{EmpID} $\rightarrow$ \texttt{DeptName} (This is derived via \texttt{EmpID} $\rightarrow$ \texttt{DeptID} and \texttt{DeptID} $\rightarrow$ \texttt{DeptName})
+\end{itemize}
+
+However, \texttt{DeptName} $\rightarrow$ \texttt{DeptID} might \emph{not} hold if multiple departments could potentially have the same name (though assigned different IDs). Also, \texttt{DeptID} $\rightarrow$ \texttt{Salary} does not hold, as different employees in the same department can have different salaries.
+
+\textbf{Types of Functional Dependencies:}
+\begin{itemize}
+    \item \textbf{Trivial FD:} $A \rightarrow B$ where $B \subseteq A$. (e.g., \texttt{\{EmpID, Name\}} $\rightarrow$ \texttt{EmpID}). Always true.
+    \item \textbf{Non-Trivial FD:} $A \rightarrow B$ where $B \not\subseteq A$. (e.g., \texttt{EmpID} $\rightarrow$ \texttt{Name}). These are the interesting ones for normalization.
+    \item \textbf{Full Functional Dependency:} $A \rightarrow B$ is fully functional if removing any attribute from $A$ invalidates the dependency. This is relevant when $A$ is a composite key (multiple attributes). $B$ must depend on \emph{all} parts of $A$, not just a subset.
+    \item \textbf{Partial Functional Dependency:} $A \rightarrow B$ where $B$ depends on only a \emph{part} (a proper subset) of the composite key $A$. Violates Second Normal Form (2NF).
+    \item \textbf{Transitive Functional Dependency:} An indirect dependency where $A \rightarrow B$ and $B \rightarrow C$, resulting in $A \rightarrow C$, but $B$ is \emph{not} part of the primary key and $B$ does not functionally determine $A$. Violates Third Normal Form (3NF). In our example, \texttt{EmpID} $\rightarrow$ \texttt{DeptID} and \texttt{DeptID} $\rightarrow$ \texttt{DeptName} leads to the transitive dependency \texttt{EmpID} $\rightarrow$ \texttt{DeptName} (where \texttt{DeptID} is the intermediate non-key attribute).
+\end{itemize}
+
+\section{Normal Forms}
+
+Normal forms (NFs) are criteria for structuring relations based on their functional dependencies. Higher normal forms have stricter requirements.
+
+\subsection{First Normal Form (1NF)}
+
+A relation is in 1NF if and only if all underlying domains contain atomic values only. This means:
+\begin{enumerate} % Using enumerate for numbered list
+    \item Each cell (intersection of a row and column) must contain a single, indivisible value.
+    \item There are no repeating groups (e.g., multiple phone numbers stored in a single \texttt{PhoneNumbers} column).
+    \item Each row is unique (implicitly required by the definition of a relation, usually enforced by a primary key).
+\end{enumerate}
+
+\textbf{Example (Not in 1NF):}
+A table storing student courses like this:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+StudentID & Name & CoursesTaken \\
+\midrule
+101 & Alice & {'CS101', 'MA101'} \\ % Non-atomic
+102 & Bob & {'PH101'} \\ % Non-atomic
+\bottomrule
+\end{tabular}
+\caption{Student Courses Relation (Not in 1NF)}
+\label{tab:not_1nf}
+\end{table}
+The \texttt{CoursesTaken} attribute contains a set/list of values, violating atomicity.
+
+\textbf{Example (In 1NF):}
+To achieve 1NF, we decompose the table. The standard way is to create a separate row for each student-course combination:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}} % Reduced columns
+\toprule
+StudentID & Name \\
+\midrule
+101 & Alice \\
+102 & Bob \\
+\bottomrule
+\end{tabular}
+\caption{Students Relation (1NF)}
+\label{tab:students_1nf}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+StudentID & CourseID \\
+\midrule
+101 & CS101 \\
+101 & MA101 \\
+102 & PH101 \\
+\bottomrule
+\end{tabular}
+\caption{Enrollments Relation (1NF)}
+\label{tab:enrollments_1nf}
+\end{table}
+Now, each cell contains a single value. The primary key for \texttt{Enrollments} would likely be \texttt{(StudentID, CourseID)}.
+
+\subsection{Second Normal Form (2NF)}
+
+A relation is in 2NF if and only if:
+\begin{enumerate}
+    \item It is already in 1NF.
+    \item Every non-key attribute is fully functionally dependent on the \emph{entire} primary key.
+\end{enumerate}
+
+This means there are no partial dependencies. If the primary key is a single attribute, the relation is automatically in 2NF if it's in 1NF. 2NF is only relevant for relations with composite primary keys.
+
+\textbf{Example (Not in 2NF):}
+Consider an \texttt{Enrollments} table where we store student and course details directly:
+Primary Key: \texttt{(StudentID, CourseID)}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+StudentID & CourseID & StudentName & CourseName & Grade \\
+\midrule
+101 & CS101 & Alice & Intro to Programming & A \\
+101 & MA101 & Alice & Calculus I & B \\
+102 & MA101 & Bob & Calculus I & A \\
+\bottomrule
+\end{tabular}
+\caption{Enrollments Relation (Assumed PK: (StudentID, CourseID) - Not in 2NF)}
+\label{tab:not_2nf}
+\end{table}
+
+Here:
+\begin{itemize}
+    \item \texttt{StudentName} depends only on \texttt{StudentID} (partial dependency).
+    \item \texttt{CourseName} depends only on \texttt{CourseID} (partial dependency).
+    \item \texttt{Grade} depends on the full key \texttt{(StudentID, CourseID)}.
+\end{itemize}
+
+The partial dependencies on \texttt{StudentName} and \texttt{CourseName} violate 2NF. This leads to redundancy (Alice's name stored twice, Calculus I name stored twice) and update anomalies (if Alice changes her name, it needs updating in multiple rows).
+
+\textbf{Example (In 2NF):}
+Decompose into tables where non-key attributes depend on the whole key or exist in tables with single-attribute keys:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+StudentID & StudentName \\
+\midrule
+101 & Alice \\
+102 & Bob \\
+\bottomrule
+\end{tabular}
+\caption{Students Relation (2NF)}
+\label{tab:students_2nf}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+CourseID & CourseName \\
+\midrule
+CS101 & Intro to Programming \\
+MA101 & Calculus I \\
+\bottomrule
+\end{tabular}
+\caption{Courses Relation (2NF)}
+\label{tab:courses_2nf}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+StudentID & CourseID & Grade \\
+\midrule
+101 & CS101 & A \\
+101 & MA101 & B \\
+102 & MA101 & A \\
+\bottomrule
+\end{tabular}
+\caption{Enrollments Relation (PK: (StudentID, CourseID) - Now in 2NF)}
+\label{tab:enrollments_2nf}
+\end{table}
+Now, \texttt{Grade} depends on the full key \texttt{(StudentID, CourseID)} in the \texttt{Enrollments} table. \texttt{StudentName} depends on \texttt{StudentID} (the key) in the \texttt{Students} table. \texttt{CourseName} depends on \texttt{CourseID} (the key) in the \texttt{Courses} table. There are no partial dependencies.
+
+\subsection{Third Normal Form (3NF)}
+
+A relation is in 3NF if and only if:
+\begin{enumerate}
+    \item It is already in 2NF.
+    \item There are no transitive functional dependencies of non-key attributes on the primary key.
+\end{enumerate}
+
+This means no non-key attribute should be functionally dependent on another non-key attribute.
+
+\textbf{Example (Not in 3NF):}
+Consider an \texttt{Employees} table with department information:
+Primary Key: \texttt{EmployeeID}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+EmployeeID & Name & DeptID & DeptName & DeptLocation \\
+\midrule
+1 & Alice & 10 & Sales & New York \\
+2 & Bob & 20 & Marketing & London \\
+3 & Charlie & 10 & Sales & New York \\
+\bottomrule
+\end{tabular}
+\caption{Employees Relation (PK: EmployeeID - Not in 3NF)}
+\label{tab:not_3nf}
+\end{table}
+
+Here:
+\begin{itemize}
+    \item \texttt{EmployeeID} $\rightarrow$ \texttt{DeptID} (Employee determines their department ID)
+    \item \texttt{DeptID} $\rightarrow$ \texttt{DeptName} (Department ID determines its name)
+    \item \texttt{DeptID} $\rightarrow$ \texttt{DeptLocation} (Department ID determines its location)
+\end{itemize}
+
+Because \texttt{EmployeeID} $\rightarrow$ \texttt{DeptID} and \texttt{DeptID} $\rightarrow$ \texttt{DeptName} (and \texttt{DeptLocation}), we have transitive dependencies: \texttt{EmployeeID} $\rightarrow$ \texttt{DeptName} and \texttt{EmployeeID} $\rightarrow$ \texttt{DeptLocation} via the non-key attribute \texttt{DeptID}. This violates 3NF. It causes redundancy (Sales/New York stored multiple times) and update anomalies (changing the Sales department location requires updating multiple employee rows).
+
+\textbf{Example (In 3NF):}
+Decompose to remove the transitive dependency:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+EmployeeID & Name & DeptID \\
+\midrule
+1 & Alice & 10 \\
+2 & Bob & 20 \\
+3 & Charlie & 10 \\
+\bottomrule
+\end{tabular}
+\caption{Employees Relation (PK: EmployeeID - Now in 3NF)}
+\label{tab:employees_3nf}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}ccc@{}} % Corrected column count
+\toprule
+DeptID & DeptName & DeptLocation \\
+\midrule
+10 & Sales & New York \\
+20 & Marketing & London \\
+\bottomrule
+\end{tabular}
+\caption{Departments Relation (PK: DeptID - Also in 3NF)}
+\label{tab:departments_3nf}
+\end{table}
+Now, the \texttt{Employees} table only contains attributes directly dependent on \texttt{EmployeeID}. The \texttt{Departments} table contains attributes dependent on \texttt{DeptID}. There are no transitive dependencies within either table.
+
+\subsection{Boyce-Codd Normal Form (BCNF)}
+
+BCNF (Boyce-Codd Normal Form) is a slightly stricter version of 3NF. A relation is in BCNF if and only if:
+\begin{enumerate}
+    \item It is already in 3NF.
+    \item For every non-trivial functional dependency $X \rightarrow Y$, $X$ must be a superkey. (A superkey is a set of attributes that uniquely identifies a row; a candidate key is a minimal superkey).
+\end{enumerate}
+
+Essentially, every determinant (the left side of an FD) must be a candidate key. BCNF handles certain rare anomalies not addressed by 3NF, typically involving relations with multiple overlapping candidate keys.
+
+\textbf{Example (Not in BCNF, but in 3NF):}
+Consider a relation \texttt{AdvisorAssignments(StudentID, AdvisorID, MajorID)} representing that a student can have multiple advisors for potentially different aspects of their major, an advisor advises for only one major, and a student has only one major they are associated with via any specific advisor.
+Assume these FDs:
+\begin{itemize}
+    \item \texttt{(StudentID, AdvisorID)} $\rightarrow$ \texttt{MajorID} (A specific student-advisor pairing relates to one major)
+    \item \texttt{MajorID} $\rightarrow$ \texttt{AdvisorID} (Let's assume, perhaps unrealistically, that each major has only *one* specific lead advisor assigned, identified by \texttt{AdvisorID})
+\end{itemize}
+Candidate Keys:
+\begin{itemize}
+    \item \texttt{(StudentID, AdvisorID)} (Determines \texttt{MajorID})
+    \item \texttt{(StudentID, MajorID)} (Because \texttt{MajorID} $\rightarrow$ \texttt{AdvisorID}, knowing the student and the major tells you the unique lead advisor for that major, thus determining the full tuple).
+\end{itemize}
+Functional Dependencies:
+\begin{enumerate}
+    \item \texttt{(StudentID, AdvisorID)} $\rightarrow$ \texttt{MajorID} (Determinant \texttt{(StudentID, AdvisorID)} is a candidate key - OK for BCNF)
+    \item \texttt{MajorID} $\rightarrow$ \texttt{AdvisorID} (Determinant \texttt{MajorID} is \emph{not} a candidate key (it's only part of one) - Violates BCNF!)
+\end{enumerate}
+
+This relation \emph{is} in 3NF because \texttt{AdvisorID} (the right side of the violating FD) is part of a candidate key \texttt{(StudentID, AdvisorID)}. 3NF allows dependencies where the determinant is not a candidate key if the dependent attribute is part of \emph{some} candidate key. BCNF forbids this.
+
+\textbf{Example (In BCNF):}
+Decompose to satisfy BCNF, separating the problematic dependency:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+StudentID & AdvisorID \\ % Student assigned to an advisor
+\midrule
+ S101 & A20 \\
+ S101 & A25 \\ % Student can have multiple advisors
+ S102 & A20 \\
+\bottomrule
+\end{tabular}
+\caption{Student\_Advisors Relation (PK: (StudentID, AdvisorID) - BCNF)}
+\label{tab:student_advisors_bcnf}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+AdvisorID & MajorID \\ % Each advisor tied to one major
+\midrule
+ A20 & CS \\
+ A25 & MATH \\
+\bottomrule
+\end{tabular}
+\caption{Advisor\_Majors Relation (PK: AdvisorID - BCNF)}
+\label{tab:advisor_majors_bcnf}
+\end{table}
+
+Now, in \texttt{Student\_Advisors}, the only FD is the trivial one from the key. In \texttt{Advisor\_Majors}, the FD is \texttt{AdvisorID} -> \texttt{MajorID}, and \texttt{AdvisorID} is the key. Both are in BCNF.
+
+BCNF ensures the highest level of integrity related to functional dependencies but sometimes requires decompositions that might make certain queries require more joins.
+
+\section{Denormalization}
+
+While normalization is generally desirable for data integrity and reducing redundancy, there can be performance drawbacks, primarily due to the increased number of joins required to retrieve data spread across multiple tables. Denormalization is the \emph{controlled} process of introducing redundancy back into a database schema, typically by combining tables or adding pre-calculated fields, specifically to improve read performance for critical queries.
+
+\textbf{Reasons for Denormalization:}
+\begin{itemize}
+    \item \textbf{Improving Query Performance:} Reducing the number of joins is the most common reason. Joins can be computationally expensive, especially with large tables.
+    \item \textbf{Simplifying Queries:} Some queries become much simpler to write and understand against a denormalized structure.
+    \item \textbf{Reporting Requirements:} Data warehouses and reporting databases are often denormalized (using star or snowflake schemas) to facilitate slicing, dicing, and aggregation for business intelligence.
+    \item \textbf{Pre-computation:} Storing derived or calculated values (e.g., \texttt{OrderTotal} in an \texttt{Orders} table instead of calculating it from \texttt{OrderItems} every time).
+\end{itemize}
+
+\textbf{Example:}
+In our 3NF example (Tables \ref{tab:employees_3nf} and \ref{tab:departments_3nf}), retrieving an employee's name and their department's name requires a join. If this query is extremely frequent and performance-critical, we might denormalize by adding \texttt{DeptName} back into the \texttt{Employees} table:
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}cccc@{}}
+\toprule
+EmployeeID & Name & DeptID & DeptName \\ % DeptName added back
+\midrule
+1 & Alice & 10 & Sales \\
+2 & Bob & 20 & Marketing \\
+3 & Charlie & 10 & Sales \\
+\bottomrule
+\end{tabular}
+\caption{Denormalized Employees Table (for performance)}
+\label{tab:denormalized_employees}
+\end{table}
+
+\textbf{Drawbacks of Denormalization:}
+\begin{itemize}
+    \item \textbf{Increased Data Redundancy:} Duplicates \texttt{DeptName}.
+    \item \textbf{Increased Storage Space:} Requires more disk space.
+    \item \textbf{Update Anomalies Risk:} If the 'Sales' department name changes, it must be updated in \emph{all} relevant employee rows, increasing complexity and the risk of inconsistency if not done carefully (often requires triggers or application logic to manage).
+    \item \textbf{More Complex Data Modification Logic:} Inserts, updates, and deletes become more complex to keep redundant data synchronized.
+\end{itemize}
+
+\textbf{When to Consider Denormalization:}
+Denormalization should be considered a targeted optimization technique, applied cautiously \emph{after} achieving a reasonable level of normalization (usually 3NF/BCNF) and \emph{after} identifying specific performance bottlenecks that cannot be adequately resolved through other means (like proper indexing, query tuning, or caching).
+\begin{itemize}
+    \item High read-to-write ratio for the affected data.
+    \item Performance requirements cannot be met otherwise.
+    \item Application logic can reliably manage the consistency of redundant data.
+\end{itemize}
+
+It's a trade-off: sacrificing some normalization purity for performance gains.
+
+\section{Choosing the Right Normal Form}
+
+The most common target for application databases (OLTP - Online Transaction Processing systems) is \textbf{3NF}. It provides a good balance between data integrity, reduced redundancy, and reasonable performance without the potential complexities of achieving BCNF in all cases or the performance overhead of higher normal forms (4NF, 5NF, DKNF, which deal with multi-valued dependencies and join dependencies, not covered here).
+
+\begin{itemize}
+    \item \textbf{1NF:} Absolutely essential baseline.
+    \item \textbf{2NF:} Automatically achieved if the table is in 1NF and has no composite keys. Otherwise, important to eliminate partial dependencies.
+    \item \textbf{3NF:} The standard goal for most OLTP databases. Eliminates transitive dependencies, significantly reducing redundancy and anomalies.
+    \item \textbf{BCNF:} Stricter than 3NF. Desirable if achievable without sacrificing crucial relationships or performance, but achieving it might sometimes lead to less intuitive schemas or require more joins for common queries.
+    \item \textbf{Denormalization:} A deliberate step back from normalization, used selectively for performance optimization when the benefits clearly outweigh the integrity risks and maintenance costs.
+\end{itemize}
+
+The choice depends on the specific application requirements, query patterns, performance needs, and the acceptable level of data redundancy and update complexity. Start with 3NF/BCNF as the goal, and only denormalize strategically if necessary and well-justified.
+
+\chapter{Conclusion}
+
+Congratulations on reaching the end of this introductory guide to database fundamentals! We've journeyed through the theoretical underpinnings of the relational model with Relational Algebra, explored the practical implementation and querying capabilities of a powerful open-source database system, PostgreSQL, using SQL, and delved into the crucial principles of Database Normalization for designing robust and efficient database schemas.
+
+You now have a foundational understanding of:
+\begin{itemize}
+    \item How data can be formally manipulated using relational algebra operations ($\sigma, \pi, \cup, -, \times, \rho, \cap, \Join, \div$).
+    \item How to create, populate, query, and manage databases and tables using SQL in PostgreSQL (\texttt{CREATE}, \texttt{INSERT}, \texttt{SELECT}, \texttt{UPDATE}, \texttt{DELETE}, joins, subqueries, aggregates, CTEs, window functions, transactions, indexes, views).
+    \item The importance of normalization (1NF, 2NF, 3NF, BCNF) for minimizing redundancy and improving data integrity, and the concept of denormalization as a performance tuning technique.
+\end{itemize}
+
+These concepts are the bedrock upon which modern data management systems are built. Mastering them provides you with essential skills for designing, developing, and interacting with databases effectively. Remember that database design and querying are often iterative processes; experience will refine your ability to choose appropriate data types, design efficient schemas, write optimized queries, and make informed decisions about normalization trade-offs.
+
+Keep practicing with PostgreSQL, experiment with different query structures, and explore more advanced topics like database security, performance tuning, replication, and NoSQL alternatives as you continue your computer science journey. The world of data is vast and constantly evolving – embrace the learning process!
+
+Good luck with your future database endeavors!
+
+\end{document}
+
