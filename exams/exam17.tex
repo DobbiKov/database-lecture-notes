@@ -1,0 +1,324 @@
+% !TEX TS-program = pdflatex
+% Solutions to UE Bases de données Exam 2016-2017 – Licence 2ème Année
+\documentclass[a4paper,11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage[french]{babel}
+\usepackage{color}
+\lstset{basicstyle=\ttfamily, breaklines=true}
+
+\title{Solutions de l'examen UE Bases de données – 1\textsuperscript{ère} session 2016-2017}
+\author{Licence 2ème Année}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\section*{Schéma de la base de données}
+\begin{itemize}
+  \item \textbf{Régate}(\underline{Num}, NomR, Date)
+  \item \textbf{Participant}(Num, \underline{IdB}, \underline{IdE})
+  \item \textbf{Bateau}(\underline{IdB}, Nom, Cat\'egorie)
+  \item \textbf{Marin}(\underline{IdM}, Nom, Pr\'enom, Nationalit\'e)
+  \item \textbf{Equipage}(\underline{IdE}, IdM)
+\end{itemize}
+
+\section*{A. Algèbre relationnelle et SQL sans imbrication ni agrégats}
+
+\subsection*{A-1. Quels sont les marins (noms) fran\c{c}ais ?}
+\textbf{Algèbre relationnelle :}
+\[
+  \pi_{Nom}\bigl(\sigma_{Nationalit\'e='France'}(Marin)\bigr)
+\]
+\textbf{SQL :}
+\begin{lstlisting}[language=SQL]
+SELECT Nom
+FROM Marin
+WHERE Nationalite = 'France';
+\end{lstlisting}
+\textit{Explication :} On filtre d'abord l'ensemble des marins dont la nationalit\'e vaut 'France', puis on projette sur le nom.
+
+\subsection*{A-2. Quels sont les bateaux (identifiants et noms) de cat\'egorie "d\'eriveur" ?}
+\textbf{Algèbre relationnelle :}
+\[
+  \pi_{IdB,Nom}\bigl(\sigma_{Cat\'egorie='d\'eriveur'}(Bateau)\bigr)
+\]
+\textbf{SQL :}
+\begin{lstlisting}[language=SQL]
+SELECT IdB, Nom
+FROM Bateau
+WHERE Categorie = 'deriveur';
+\end{lstlisting}
+\textit{Explication :} On impose la condition de categorie puis on affiche les colonnes d'identifiant et de nom.
+
+\subsection*{A-3. Quelles sont les régates (identifiants) qui ont eu lieu le 10 Mai 2017 ?}
+\textbf{Algèbre relationnelle :}
+\[
+  \pi_{Num}\bigl(\sigma_{Date='2017-05-10'}(Régate)\bigr)
+\]
+\textbf{SQL :}
+\begin{lstlisting}[language=SQL]
+SELECT Num
+FROM Regate
+WHERE Date = '2017-05-10';
+\end{lstlisting}
+\textit{Explication :} Dans la table Régate, on sélectionne les tuples dont la date est le 10 mai 2017, puis on projette l'identifiant.
+
+\subsection*{A-4. Quels sont les bateaux (identifiants et noms) de cat\'egorie "d\'eriveur" participant \`a des régates du 10 Mai 2017 ?}
+\textbf{Algèbre relationnelle :}
+\[
+\begin{array}{l}
+  \pi_{B.IdB,B.Nom}\bigl(
+    \sigma_{B.Categorie='dériveur'}(Bateau) \bowtie B.IdB = P.IdB \\
+    \bowtie P.Num = R.Num \bowtie \sigma_{R.Date='2017-05-10'}(Régate)
+  \bigr)
+\end{array}
+\]
+\textbf{SQL :}
+\begin{lstlisting}[language=SQL]
+SELECT B.IdB, B.Nom
+FROM Bateau AS B
+JOIN Participant AS P ON B.IdB = P.IdB
+JOIN Regate   AS R ON P.Num = R.Num
+WHERE B.Categorie = 'deriveur'
+  AND R.Date = '2017-05-10';
+\end{lstlisting}
+\textit{Explication :} On joint les trois tables selon les clefs correspondantes, filtre sur la catégorie et la date, puis on projette.
+
+\subsection*{A-5. Marins (noms) ayant participé à des régates du 10 Mai 2017 sur des dériveurs, avec bateau navigué}
+\textbf{Algèbre relationnelle :}
+\[
+\begin{array}{l}
+  \pi_{M.Nom, B.Nom}\bigl(
+    Marin~M \bowtie Equipage~E \bowtie P.IdE = E.IdE \\
+    \bowtie P.IdB = B.IdB \bowtie \sigma_{B.Categorie='dériveur'}(Bateau) \\
+    \bowtie P.Num = R.Num \bowtie \sigma_{R.Date='2017-05-10'}(Régate)
+  \bigr)
+  \end{array}
+\]
+\textbf{SQL :}
+\begin{lstlisting}[language=SQL]
+SELECT M.Nom, B.Nom AS Bateau
+FROM Marin   AS M
+JOIN Equipage AS E ON M.IdM = E.IdM
+JOIN Participant AS P ON E.IdE = P.IdE
+JOIN Bateau    AS B ON P.IdB = B.IdB
+JOIN Regate    AS R ON P.Num = R.Num
+WHERE B.Categorie = 'deriveur'
+  AND R.Date = '2017-05-10';
+\end{lstlisting}
+\textit{Explication :} On construit la cha\^ine de jointures de Marin \`a Régate en passant par Equipage et Participant, filtre la cat\'egorie et la date, puis on affiche le nom du marin et du bateau.
+
+\subsection*{A-6. Marins (identifiants et noms) qui n’ont jamais navigué}
+\textbf{Algèbre relationnelle :}
+\[
+  \pi_{IdM,Nom}(Marin) - \pi_{E.IdM, M2.Nom}\bigl(
+    Marin~M2 \bowtie Equipage~E
+  \bigr)
+\]
+\textbf{SQL :}
+\begin{lstlisting}[language=SQL]
+SELECT IdM, Nom
+FROM Marin
+WHERE IdM NOT IN (
+  SELECT IdM
+  FROM Equipage
+);
+\end{lstlisting}
+\textit{Explication :} On retire de l'ensemble des marins ceux dont l'Id figure dans Equipage.
+
+\subsection*{A-7. Marins (identifiants et noms) membres d’au moins deux équipages diff\'erents}
+\textbf{Algèbre relationnelle :}
+\[
+  \pi_{IdM, Nom}\Bigl(
+    \sigma_{c\ge2} \bigl(
+      \gamma_{IdM; \mathrm{count}(IdE) \rightarrow c}(Equipage)
+    ) \bowtie Marin
+  \Bigr)
+\]
+(note : on exprime le comptage en algèbre étendue)
+
+\textbf{SQL :}
+\begin{lstlisting}[language=SQL]
+SELECT M.IdM, M.Nom
+FROM Marin AS M
+JOIN (
+  SELECT IdM
+  FROM Equipage
+  GROUP BY IdM
+  HAVING COUNT(DISTINCT IdE) >= 2
+) AS T ON M.IdM = T.IdM;
+\end{lstlisting}
+\textit{Explication :} On regroupe Equipage par marin, on retient ceux avec au moins deux équipages distincts, puis on joint pour obtenir le nom.
+
+\newpage
+\section*{B. SQL avec agrégats et sous-requêtes dans \texttt{WHERE}}
+
+\subsection*{B-1. Combien de régates ont eu lieu en Mai 2017 ?}
+\begin{lstlisting}[language=SQL]
+SELECT COUNT(*) AS nb_regates
+FROM Regate
+WHERE Date BETWEEN '2017-05-01' AND '2017-05-31';
+\end{lstlisting}
+\textit{Explication :} On compte toutes les lignes de Régate dont la date est dans l'intervalle complet de mai.
+
+\subsection*{B-2. Marins (identifiants et noms) faisant partie de strictement plus de 3 équipages}
+\begin{lstlisting}[language=SQL]
+SELECT M.IdM, M.Nom
+FROM Marin AS M
+WHERE (
+  SELECT COUNT(DISTINCT IdE)
+  FROM Equipage
+  WHERE IdM = M.IdM
+) > 3;
+\end{lstlisting}
+\textit{Explication :} Pour chaque marin, la sous-requête calcule le nombre d'équipages, puis on filtre.
+
+\subsection*{B-3. Nombre de marins par régate (id et nom de la régate)}
+\begin{lstlisting}[language=SQL]
+SELECT R.Num, R.NomR,
+       (
+         SELECT COUNT(DISTINCT E.IdM)
+         FROM Participant AS P
+         JOIN Equipage AS E ON P.IdE = E.IdE
+         WHERE P.Num = R.Num
+       ) AS nb_marins
+FROM Regate AS R;
+\end{lstlisting}
+\textit{Explication :} Pour chaque régate, on compte via une sous-requête le nombre de marins distincts dans les équipages participants.
+
+\subsection*{B-4. Équipages ayant participé \`a toutes les régates appelées "Vendée Globe"}
+\begin{lstlisting}[language=SQL]
+SELECT IdE
+FROM Participant
+WHERE Num IN (
+  SELECT Num
+  FROM Regate
+  WHERE NomR = 'Vendee Globe'
+)
+GROUP BY IdE
+HAVING COUNT(DISTINCT Num) = (
+  SELECT COUNT(*)
+  FROM Regate
+  WHERE NomR = 'Vendee Globe'
+);
+\end{lstlisting}
+\textit{Explication :} On sélectionne les équipages apparaissant dans les régates nommées "Vendée Globe", on groupe par équipage et on ne retient que ceux dont le nombre de participations égale le nombre total de régates "Vendée Globe".
+
+\newpage
+\section*{C. Contraintes et effets des mises \`a jour}
+\subsection*{Schéma et instance initiale}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE LABEL (
+  lab_Id VARCHAR PRIMARY KEY,
+  Val INT
+);
+CREATE TABLE LIEN (
+  Deb VARCHAR,
+  Fin VARCHAR,
+  FOREIGN KEY (Deb) REFERENCES LABEL(lab_Id)
+    ON UPDATE CASCADE,
+  FOREIGN KEY (Fin) REFERENCES LABEL(lab_Id)
+    ON DELETE SET NULL
+    ON UPDATE SET NULL
+);
+-- Instance initiale:
+-- LABEL:
+
+-- LIEN:
+--  (L23,L24), (L24,L25), (L26,L23)
+\end{lstlisting}
+
+\subsubsection*{1. \texttt{INSERT INTO LIEN VALUES ('L23','L56')} } 
+Après l'insertion, la contrainte de clef 'etrang\`ere sur \texttt{Fin} (référant LABEL.lab\_Id) viole car 'L56' n'existe pas dans LABEL. 
+\textbf{Résultat :} L'insertion échoue, l'état ne change.
+
+\subsubsection*{2. \texttt{UPDATE LABEL SET lab\_Id='o54' WHERE lab\_Id='L24'} }
+L'\`operation modifie la clef primaire L24→o54. Par \texttt{ON UPDATE CASCADE} sur \texttt{LIEN(Deb)}, tout lien dont Deb='L24' devient Deb='o54'. Par \texttt{ON UPDATE SET NULL} sur \texttt{LIEN(Fin)}, tout lien dont Fin='L24' devient Fin=NULL.
+
+\paragraph{État intermédiaire :}
+\textbf{LABEL:}
+\begin{tabular}{ll}
+labId & Val\\ \hline
+L23 & 12\\
+o54 & 16\\
+L25 & 18\\
+L26 & 11
+\end{tabular}
+
+\textbf{LIEN:}
+\begin{tabular}{ll}
+Deb & Fin\\ \hline
+L23 & NULL \quad (anciennement L23→L24)\\
+o54 & L25 \quad (anciennement L24→L25)\\
+L26 & L23
+\end{tabular}
+
+\subsubsection*{3. \texttt{DELETE FROM LABEL WHERE lab\_Id='L23'} }
+Suppression de L23 de LABEL. Les contraintes :
+\begin{itemize}
+  \item \texttt{ON DELETE CASCADE}? Non défini pour Deb, donc RESTRICT par défaut → suppression échoue car L23 est référencé par LIEN\`(Fin) et LIEN(Deb).
+  \item \texttt{ON DELETE SET NULL}? Défini pour \texttt{LIEN(Fin)}, mais la suppression est déjà bloqu\`ee par le premier.
+\end{itemize}
+\textbf{Résultat :} La suppression échoue, l'état reste celui de l'étape 2.
+
+
+\newpage
+\section*{D. Formes normales et d\'ecomposition}
+
+\subsection*{D-1. Avantages d'une décomposition $(R_1,F_1),(R_2,F_2)$}
+\begin{itemize}
+  \item\textbf{Élimination des redondances:} Moins de duplication d'attributs, stockage moindre.
+  \item\textbf{Amélioration de la cohérence:} Les anomalies de mise \`a jour (insertions, suppressions) sont réduites.
+  \item\textbf{Requêtes plus ciblées:} Les jointures limitées aux relations concernées peuvent \^etre plus efficaces.
+  \item\textbf{Maintenance facilitée:} Compréhension et gestion des responsabilités de chaque relation.
+\end{itemize}
+
+\subsection*{D-2. Inconvénients d'une d\'ecomposition}
+\begin{itemize}
+  \item\textbf{Coût des jointures:} Chaque requête multi-relations nécessite une jointure, pouvant \^etre coûteuse.
+  \item\textbf{Complexité accrue:} Logique des transactions et contraintes réparties sur plusieurs tables.
+  \item\textbf{Problèmes de performance:} Nombre élevé de jointures peut ralentir l'accès pour certaines requêtes.
+  \item\textbf{Gestion des contraintes:} Le respect des dépendances requires vérifications croisées.
+\end{itemize}
+
+\newpage
+\section*{E. Algorithmes de décomposition et formes normales}
+Soit $R(VWXYZ)$ et $F=\{XY\to Z, ZX\to W, YZ\to X, W\to V\}$.
+
+\subsection*{E-1. Clés de $(R,F)$}
+Pour trouver les clés, on calcule la fermeture de combinaisons minimales:
+\begin{itemize}
+  \item $WX^+ = \{W,X,V\}$ (puis $V$), pas $Y,Z$
+  \item $XZ^+ = \{X,Z,W,V\}$, pas $Y$
+  \item $XY^+ = \{X,Y,Z,W,V\}$, contient tous → $\{X,Y\}$ est clé candidate.
+  \item $YZ^+$: $Y,Z \to X$ donne $X$, puis $X,Y \to Z$ redondant, puis $ZX \to W$, puis $W\to V$ → tout. Donc $\{Y,Z\}$ est clé.
+  \item Aucune singleton ne couvre tous → clés: $\{X,Y\}$ et $\{Y,Z\}$.
+\end{itemize}
+
+\subsection*{E-2. $R$ est-elle en 3FN ?}
+On teste chaque DF dans $F$:
+\begin{itemize}
+  \item $XY\to Z$: $XY$ est super-clé → OK.
+  \item $ZX\to W$: $ZX$ contient clé $\{Y,Z\}$? Non, $Z,X$ non super-clé → $W$ \textbf{non-prime}? $W$ n'appartient \`a aucune clé → violation.
+  \item $YZ\to X$: $YZ$ est clé → OK.
+  \item $W\to V$: $W$ non super-clé et $V$ non prime → violation.
+\end{itemize}
+Donc $R$ n'est pas en 3FN.
+
+\subsection*{E-3. D\'ecomposition en 3FN}
+On choisit relations pour chaque DF violant:
+\begin{align*}
+ R_1 &= (Z,X,W) &\text{pour }ZX\to W, \\
+ R_2 &= (W,V)   &\text{pour }W\to V, \\
+ R_3 &= (X,Y,Z) &\text{pour }XY\to Z \text{ et } YZ\to X.
+\end{align*}
+On note que $R_3$ couvre les DF entre $X,Y,Z$, et $R_1,R_2$ éliminent les dépendances transverses. 
+Ces relations sont maintenant en 3FN, seule clef dans $R_1$ est $ZX$, dans $R_2$ $W$, et dans $R_3$ $XY$ (ou $YZ$).
+
+\end{document}

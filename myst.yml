@@ -9,9 +9,18 @@ project:
   github: https://github.com/DobbiKov/
   toc:
     - file: root.md
+    - file: poly.tex
     - file: db-normalization.md
+    - file: db-normalization-spi-spd.md
     - file: db-normalization-algorithm.md
-  # To autogenerate a Table of Contents, run "myst init --write-toc"
+    - title: examens
+      authors: [Yehor KOROTENKO]
+      children:
+      - file: exams/exam24.tex
+      - file: exams/exam22.tex
+      - file: exams/exam21.tex
+      - file: exams/exam17.tex
+
 site:
   template: book-theme
   # options:

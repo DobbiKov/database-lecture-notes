@@ -1,0 +1,242 @@
+% Solutions Examen Bases de Données 2021-2022
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{\textbf{Solutions de l'Examen Bases de Données (Session 1, 2021--2022)}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{A. Requêtes : Algèbre relationnelle et SQL sans sous-requêtes ni agrégats}
+\subsection*{1. Marques de bus pouvant transporter plus de 50 voyageurs}
+\textbf{Algèbre relationnelle}\[
+  \pi_{\text{Marq}}\Bigl(\sigma_{\text{Cap}>50}(\text{Bus})\Bigr)
+\]
+\textit{Explication :} On sélectionne d'abord les tupples de \texttt{Bus} dont \texttt{Cap>50}, puis on projette l'attribut \texttt{Marq} pour obtenir les marques.
+
+\textbf{SQL}
+\begin{verbatim}
+SELECT DISTINCT Marq
+FROM Bus
+WHERE Cap > 50;
+\end{verbatim}
+\textit{Explication :} La clause \texttt{WHERE} filtre les bus de capacité supérieure à 50, et \texttt{DISTINCT} élimine les doublons.
+
+\subsection*{2. Identifiants des trajets effectués en bus de marque \texttt{RW}}  
+\textbf{Algèbre relationnelle}\[
+  \pi_{\text{IdT}}\bigl(\sigma_{\text{Marq}='RW'}(\text{Bus}) \;\bowtie\; \text{Traj}\bigr)
+\]
+\textit{Explication :} On réalise la jointure naturelle entre \texttt{Bus} et \texttt{Traj} pour associer chaque trajet à son bus, on sélectionne les bus de marque \texttt{RW}, puis on projette \texttt{IdT}.
+
+\textbf{SQL}
+\begin{verbatim}
+SELECT T.IdT
+FROM Traj T JOIN Bus B ON T.IdB = B.IdB
+WHERE B.Marq = 'RW';
+\end{verbatim}
+\textit{Explication :} \texttt{JOIN} lie les deux tables ; la clause \texttt{WHERE} filtre sur la marque, et on affiche l'identifiant du trajet.
+
+\subsection*{3. Trajets (IdT) avec bus stationné à Lille et chauffeurs nommés `Driver`}  
+\textbf{Algèbre relationnelle}\[
+  \pi_{\text{IdT}}\bigl(\sigma_{\text{Ville}='Lille'}(\text{Bus}) \;\bowtie_{B.IdB=Tr.IdB}\; \sigma_{\text{NomC}='Driver'}(\text{Cond}) \;\bowtie_{Tr.IdC=C.IdC}\; \text{Traj}\bigr)
+\]
+\textit{Explication :} On restreint d'abord \texttt{Bus} à Lille et \texttt{Cond} au nom `Driver`, on effectue les jointures successives avec \texttt{Traj}, puis on projette \texttt{IdT}.
+
+\textbf{SQL}
+\begin{verbatim}
+SELECT T.IdT
+FROM Traj T
+JOIN Bus B   ON T.IdB = B.IdB
+JOIN Cond C  ON T.IdC = C.IdC
+WHERE B.Ville = 'Lille'
+  AND C.NomC = 'Driver';
+\end{verbatim}
+
+\subsection*{4. Identifiants des bus jamais utilisés sur un trajet}
+\textbf{Algèbre relationnelle}\[
+  \pi_{\text{IdB}}(\text{Bus})
+  \; - \;
+  \pi_{\text{IdB}}(\text{Traj})
+\]
+\textit{Explication :} On prend l'ensemble des bus puis on retire ceux qui apparaissent dans \texttt{Traj}.
+
+\textbf{SQL}
+\begin{verbatim}
+SELECT IdB
+FROM Bus
+WHERE IdB NOT IN (SELECT DISTINCT IdB FROM Traj);
+\end{verbatim}
+\textit{Explication :} La sous-requête liste les bus utilisés, et \texttt{NOT IN} sélectionne les autres.
+
+\subsection*{5. Conducteurs (IdC, NomC) ayant utilisé une marque parmi celles des bus partis de Nice le 14-04-2022}
+\textbf{Algèbre relationnelle}
+\[
+  \pi_{\text{IdC,NomC}}\Bigl(\bigl( \pi_{\text{IdC,IdB}}(\sigma_{\text{VD}='Nice' \land \text{Date}='2022-04-14'}(\text{Traj}))
+  \bowtie \text{Traj} \bowtie \text{Bus} \bigr)\Bigr)
+\]
+\textit{Explication :} On identifie d'abord les trajets partant de Nice ce jour-là, on récupère les marques des bus correspondants, puis on sélectionne les conducteurs ayant conduit ces bus.
+
+\textbf{SQL}
+\begin{verbatim}
+SELECT DISTINCT C.IdC, C.NomC
+FROM Traj T
+JOIN Bus B  ON T.IdB = B.IdB
+JOIN Cond C ON T.IdC = C.IdC
+WHERE T.VD = 'Nice'
+  AND T.Date = '2022-04-14'
+  AND B.Marq IN (
+      SELECT DISTINCT B2.Marq
+      FROM Traj T2
+      JOIN Bus B2 ON T2.IdB = B2.IdB
+      WHERE T2.VD = 'Nice'
+        AND T2.Date = '2022-04-14'
+  );
+\end{verbatim}
+
+\subsection*{6. Villes rejoignables depuis Nice avec un changement à Lyon le même jour}
+\textbf{Algèbre relationnelle}\[
+  \pi_{\text{Date}, HD1, HA1, VA2, HA2}\Bigl(
+    \rho_{T1}(\sigma_{\text{VD}='Nice'}(\text{Traj}))
+    \bowtie_{T1.Date=T2.Date \land T1.VA='Lyon' \land T1.HA < T2.HD}
+    \rho_{T2}(\sigma_{\text{VD}='Lyon'}(\text{Traj}))
+  \Bigr)
+\]
+\textit{Explication :} On prend deux instances de \texttt{Traj} : \texttt{T1} pour le tronçon Nice→Lyon, \texttt{T2} pour Lyon→destination, on impose même date et correspondance horaire, puis on projette les attributs demandés.
+
+\textbf{SQL}
+\begin{verbatim}
+SELECT T1.Date,
+       T1.HD    AS HeureDepartNice,
+       T1.HA    AS HeureArriveeLyon,
+       T2.VA    AS VilleFinale,
+       T2.HA    AS HeureArriveeFinale
+FROM Traj T1
+JOIN Traj T2 ON T1.Date = T2.Date
+             AND T1.VA = 'Lyon'
+             AND T1.HA < T2.HD
+WHERE T1.VD = 'Nice'
+  AND T2.VD = 'Lyon';
+\end{verbatim}
+
+\subsection*{7. Conducteurs ayant fait au moins deux trajets entre Lille et Nice}
+\textbf{Algèbre relationnelle}\[
+  \pi_{\text{IdC}}\Bigl(\sigma_{\text{VD}='Lille' \land \text{VA}='Nice'}(\text{Traj})
+   \;
+   \bowtie_{IdC}
+   \sigma_{\text{VD}='Nice' \land \text{VA}='Lille'}(\text{Traj})\Bigr)
+\]
+\textit{Explication :} On réalise la jointure sur \texttt{IdC} entre trajets Lille→Nice et Nice→Lille, ce qui garantit au moins deux trajets.
+
+\textbf{SQL}
+\begin{verbatim}
+SELECT C.IdC
+FROM (
+  SELECT IdC
+  FROM Traj
+  WHERE VD = 'Lille' AND VA = 'Nice'
+) AS A
+JOIN (
+  SELECT IdC
+  FROM Traj
+  WHERE VD = 'Nice' AND VA = 'Lille'
+) AS B ON A.IdC = B.IdC;
+\end{verbatim}
+
+\section*{B. Algèbre relationnelle uniquement}
+\subsection*{8. Villes où tous les conducteurs ont démarré au moins un trajet}
+\textbf{Algèbre relationnelle}\[
+  \pi_{\text{VD}}(\text{Traj})
+  \; -
+  \pi_{\text{VD}}\bigl(\pi_{\text{VD}}(\text{Traj}) \times (\pi_{\text{IdC}}(\text{Cond})
+    \; -
+  \pi_{\text{IdC}}(\text{Traj}))\bigr)
+\]
+\textit{Explication :} On énumère d'abord toutes les villes de départ, puis on retire celles pour lesquelles il existe au moins un conducteur n'ayant pas de trajet débutant dans cette ville.
+
+\section*{C. SQL avec agrégats et sous-requêtes}
+\subsection*{9. Nombre de trajets au départ de Nice le 14-04-2022}
+\begin{verbatim}
+SELECT COUNT(*) AS NbTrajets
+FROM Traj
+WHERE VD = 'Nice'
+  AND Date = '2022-04-14';
+\end{verbatim}
+\textit{Explication :} \texttt{COUNT(*)} compte les lignes satisfaisant la condition.
+
+\subsection*{10. Nombre de trajets par marque (supérieur à 20)}
+\begin{verbatim}
+SELECT B.Marq, COUNT(*) AS NbTrajets
+FROM Traj T
+JOIN Bus B ON T.IdB = B.IdB
+GROUP BY B.Marq
+HAVING COUNT(*) > 20;
+\end{verbatim}
+\textit{Explication :} \texttt{GROUP BY} regroupe par marque, et \texttt{HAVING} filtre les groupes de taille > 20.
+
+\section*{Normalisation}
+\textbf{Schéma :}\newline
+Agence(\underline{IdCl}, NomCl, \underline{IdApp}, AdrApp, DDLoc, DFLoc, Montant, IdProp, NomProp)\\
+Dépendances fonctionnelles :\\
+\begin{tabular}{ll}
+1. & IdCl $\to$ NomCl \\
+2. & IdProp $\to$ NomProp \\
+3. & NomProp $\to$ IdProp \\
+4. & IdCl,IdApp $\to$ DDLoc,DFLoc \\
+5. & IdApp $\to$ AdrApp, Montant, IdProp, NomProp
+\end{tabular}
+
+\subsection*{Q1. Instance illustrant anomalies}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+IdCl & NomCl & IdApp & AdrApp & DDLoc & DFLoc & Montant & IdProp & NomProp \\
+\hline
+1 & Alice   & A1 & 1 rue X & 2022-01-01 & 2022-02-01 & 500 & P1 & Dupont \\
+1 & Alice   & A2 & 2 rue Y & 2022-03-01 & 2022-04-01 & 300 & P2 & Martin \\
+2 & Bob     & A1 & 1 rue X & 2022-05-01 & 2022-06-01 & 500 & P1 & Dupont \\
+3 & Charlie & A3 & 3 rue Z & 2022-02-15 & 2022-03-15 & 400 & P3 & Durand \\
+3 & Charlie & A2 & 2 rue Y & 2022-07-01 & 2022-08-01 & 300 & P2 & Martin \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Type 1 :} \emph{Insertion}\\
+\textit{Problème :} Impossible d'ajouter un nouvel appartement A4 sans louer à un client existant (puisqu'AdrApp dépend de IdApp dans la même table).\\[1em]
+
+\textbf{Type 2 :} \emph{Suppression}\\
+\textit{Problème :} Si on supprime la dernière location de A3, on perd l'adresse de A3 et les informations sur le propriétaire P3.\\[1em]
+
+\textbf{Type 3 :} \emph{Mise à jour}\\
+\textit{Problème :} Si le propriétaire P2 change de nom (ex. `Martin` → `Petit`), il faut mettre à jour plusieurs lignes (pour A2, A2), d'où risque d'incohérence.
+
+\subsection*{Q2. Clés du schéma}
+Un déterminant minimal qui couvre tous les attributs : \{IdCl, IdApp\}.\\
+\textit{Justification :} 
+\begin{itemize}
+  \item De IdCl,IdApp découlent DDLoc,DFLoc (DF 4).
+  \item De IdCl découle NomCl (DF 1).
+  \item De IdApp découlent AdrApp, Montant, IdProp, NomProp (DF 5), et de IdProp ⇄ NomProp (DF 2 et 3).\\
+\end{itemize}
+Aucune sous-partie propre n'est clé, donc c'est la clé candidate.
+
+\subsection*{Q3. 3ème forme normale}
+Non. Par exemple, IdCl $\to$ NomCl viole la 3FN car IdCl n'est pas super-clé et NomCl n'est pas partie d'une clé.
+
+\subsection*{Q4. Forme normale de Boyce–Codd}
+Non plus, car pour IdProp $\to$ NomProp, IdProp n'est pas super-clé du schéma complet.
+
+\subsection*{Q5. Décomposition en FNBC}
+On applique l'algorithme de décomposition :\\
+1. FD IdCl $\to$ NomCl donne R1(IdCl,NomCl).\\
+2. FD IdApp $\to$ AdrApp,Montant,IdProp,NomProp donne R2(IdApp,AdrApp,Montant,IdProp,NomProp).\\
+3. FD IdCl,IdApp $\to$ DDLoc,DFLoc donne R3(IdCl,IdApp,DDLoc,DFLoc).\\
+4. FD IdProp $\to$ NomProp donne R4(IdProp,NomProp) (mais NomProp déjà dans R2).\\
+On conserve l'information et chaque schéma est maintenant en BCNF.
+
+\end{document}

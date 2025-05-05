@@ -1,0 +1,306 @@
+% Préambule
+\documentclass[a4paper,12pt]{article}
+\usepackage[french]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\title{Solutions de l'examen \textit{Bases de données} 2020--2021}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+%-----------------------
+\section*{Exercice A : Algèbre relationnelle et SQL sans imbrication}
+
+\subsection*{1. Nom des équipements situés au repère GPS \texttt{345\_78S}}
+\paragraph{Algèbre relationnelle}
+\[
+  \pi_{Nom}\bigl(\sigma_{GPS='345\_78S'}(Equip)\bigr)
+\]
+\paragraph{SQL}
+\begin{verbatim}
+SELECT Nom
+FROM Equip
+WHERE GPS = '345_78S';
+\end{verbatim}
+\paragraph{Explication}
+On sélectionne d'abord les tuples de \texttt{Equip} dont \texttt{GPS='345\_78S'} (opérateur \(\sigma\)), puis on projette la colonne \texttt{Nom} (opérateur \(\pi\)).
+
+\subsection*{2. Identifiants des épreuves de ski}
+\paragraph{Algèbre relationnelle}
+\[
+  \pi_{IdE}\Bigl(Epreuve \\
+  \quad\bowtie_{Epreuve.IdS = Sport.IdS}  \sigma_{Nom='ski'}(Sport)\Bigr)
+\]
+\paragraph{SQL}
+\begin{verbatim}
+SELECT E.IdE
+FROM Epreuve AS E
+JOIN Sport AS S
+  ON E.IdS = S.IdS
+WHERE S.Nom = 'ski';
+\end{verbatim}
+\paragraph{Explication}
+On filtre les sports de nom ``ski'', on les joint à \texttt{Epreuve} selon \texttt{IdS}, puis on projette \texttt{IdE}.
+
+\subsection*{3. Identifiants des épreuves individuelles au GPS \texttt{345\_78S}}
+\paragraph{Algèbre relationnelle}
+\[
+\begin{array}{l}
+  \pi_{IdE}\Bigl(\sigma_{TP='individuelle'}(Sport) \\
+  \quad\bowtie_{Sport.IdS=Epreuve.IdS}
+  Epreuve \\
+  \quad\bowtie_{Epreuve.IdEq=Equip.IdEq}  \sigma_{GPS='345\_78S'}(Equip)\Bigr)
+\end{array}
+\]
+\paragraph{SQL}
+\begin{verbatim}
+SELECT E.IdE
+FROM Sport AS S
+JOIN Epreuve AS E
+  ON S.IdS = E.IdS
+JOIN Equip AS Q
+  ON E.IdEq = Q.IdEq
+WHERE S.TP = 'individuelle'
+  AND Q.GPS = '345_78S';
+\end{verbatim}
+\paragraph{Explication}
+On applique deux sélections successives (type ``individuelle'', puis GPS) via deux jointures, puis on projette \texttt{IdE}.
+
+\subsection*{4. Sports (nom) sans aucune épreuve}
+\paragraph{Algèbre relationnelle}
+\[
+  \pi_{Nom}(Sport) - \pi_{Nom}\bigl(Sport \bowtie Epreuve\bigr)
+\]
+\paragraph{SQL}
+\begin{verbatim}
+SELECT Nom
+FROM Sport
+WHERE IdS NOT IN (
+  SELECT DISTINCT S.IdS
+  FROM Sport AS S
+  JOIN Epreuve AS E
+    ON S.IdS = E.IdS
+);
+\end{verbatim}
+\paragraph{Explication}
+On prend la différence entre l'ensemble des sports et ceux apparaissant dans \texttt{Epreuve}.
+
+\subsection*{5. Sports (nom, TP) ayant utilisé l'équipement de l'épreuve de ski individuelle du \num{14-02-2014}}
+\paragraph{Algèbre relationnelle}
+\[
+  \pi_{Nom,TP}\Bigl(
+    Sport \bowtie \\
+    \bigl(\pi_{IdEq}(\sigma_{Nom='ski' \wedge TP='individuelle' \wedge Date='2014-02-14'}(Epreuve \bowtie Sport))\bigr)
+  \Bigr)
+\]
+\paragraph{SQL}
+\begin{verbatim}
+SELECT DISTINCT S.Nom, S.TP
+FROM Sport AS S
+JOIN Epreuve AS E
+  ON S.IdS = E.IdS
+WHERE E.IdEq = (
+  SELECT IdEq
+  FROM Epreuve AS X
+  JOIN Sport AS Y
+    ON X.IdS = Y.IdS
+  WHERE Y.Nom = 'ski'
+    AND Y.TP = 'individuelle'
+    AND X.Date = '2014-02-14'
+)
+;
+\end{verbatim}
+\paragraph{Explication}
+On isole d'abord l'\texttt{IdEq} de l'épreuve ciblée par une sous-requête, puis on sélectionne tous les sports l'ayant utilisé.
+
+\subsection*{6. Équipements jamais utilisés (noms)}
+\paragraph{Algèbre relationnelle}
+\[
+  \pi_{Nom}(Equip) - \pi_{Nom}(Equip \bowtie Epreuve)
+\]
+\paragraph{SQL}
+\begin{verbatim}
+SELECT Nom
+FROM Equip
+WHERE IdEq NOT IN (
+  SELECT DISTINCT IdEq
+  FROM Epreuve
+);
+\end{verbatim}
+\paragraph{Explication}
+On liste les équipements dont l'identifiant n'apparaît pas dans la relation \texttt{Epreuve}.
+
+\subsection*{7. Identifiants des équipements utilisés au moins deux fois}
+\paragraph{Algèbre relationnelle}
+
+La condition « au moins deux fois » s'exprime par auto-mutlijoin :
+\[
+  \pi_{E1.IdEq}\bigl(\sigma_{E1.IdEq = E2.IdEq \wedge E1.IdE \neq E2.IdE}(\rho_{E1}(Epreuve) \times \rho_{E2}(Epreuve))\bigr)
+\]
+\paragraph{SQL}
+\begin{verbatim}
+SELECT IdEq
+FROM Epreuve
+GROUP BY IdEq
+HAVING COUNT(*) >= 2;
+\end{verbatim}
+\paragraph{Explication}
+On regroupe par \texttt{IdEq} et on filtre ceux dont le nombre d'occurrences est au moins \num{2}.
+
+%-----------------------
+\section*{Exercice B : Algèbre relationnelle (division)}
+
+\subsection*{8. Lieux (GPS) où \emph{tous} les sports ont été programmés}
+Soit
+\begin{itemize}
+  \item $R_1 = \pi_{IdS,IdEq}(Epreuve)$
+  \item $R_2 = \pi_{IdS}(Sport)$
+  \item $R_3 = \pi_{GPS,IdEq}(Equip)$
+\end{itemize}
+On veut
+\[
+  \pi_{GPS} \Bigl(R_3 \bowtie (R_1 \div R_2)\Bigr)
+\]
+où $R_1 \div R_2$ donne les $IdEq$ associés à \emph{tous} les $IdS$. Enfin on retrouve les GPS correspondants.
+
+%-----------------------
+\section*{Exercice C : SQL avec agrégats et sous-requêtes}
+
+\subsection*{9. Nombre d'équipements au repère GPS \texttt{345\_78S}}
+\begin{verbatim}
+SELECT COUNT(*) AS nb_equipements
+FROM Equip
+WHERE GPS = '345_78S';
+\end{verbatim}
+
+\subsection*{10. Identifiants des équipements utilisés au moins 10 fois}
+\begin{verbatim}
+SELECT IdEq
+FROM Epreuve
+GROUP BY IdEq
+HAVING COUNT(*) >= 10;
+\end{verbatim}
+
+\subsection*{11. Durée moyenne des épreuves par sport}
+\begin{verbatim}
+SELECT S.IdS, S.Nom, AVG(E.Duree) AS duree_moyenne
+FROM Sport AS S
+JOIN Epreuve AS E
+  ON S.IdS = E.IdS
+GROUP BY S.IdS, S.Nom;
+\end{verbatim}
+
+\subsection*{12. Lieux (GPS) où \emph{tous} les sports ont été programmés (SQL)}
+\begin{verbatim}
+SELECT Q.GPS
+FROM Equip AS Q
+WHERE NOT EXISTS (
+  SELECT *
+  FROM Sport AS S
+  WHERE NOT EXISTS (
+    SELECT *
+    FROM Epreuve AS E
+    WHERE E.IdS = S.IdS
+      AND E.IdEq = Q.IdEq
+  )
+);
+\end{verbatim}
+
+%-----------------------
+\section*{Anomalies de mise à jour}
+On considère la relation \texttt{Employe}(Emp\_Id, Nom, Salle, Extension) dont l'instance est celle de la Figure 2.
+
+\subsection*{1. Trois types d'anomalies}
+\begin{itemize}
+  \item \textbf{Anomalie de mise à jour (update anomaly)} : pour modifier l'extension de la salle \texttt{A7}, il faut mettre à jour deux tuples (Dupont, Petit) : risque d'incohérence.
+  \item \textbf{Anomalie de suppression (delete anomaly)} : si on supprime la ligne de \texttt{Grand}, on perd l'information qu'il existe une extension \texttt{4501} pour la salle \texttt{B4} si aucun autre employé n'est dans \texttt{B4}.
+  \item \textbf{Anomalie d'insertion (insert anomaly)} : on ne peut pas enregistrer une nouvelle salle \texttt{C1} avec extension \texttt{3200} avant qu'un employé ne l'occupe : la relation lie employés et salles.
+\end{itemize}
+
+\subsection*{2. Élimination des anomalies}
+On décompose en deux tables :
+\[
+  \begin{aligned}
+    Employe'(Emp\_Id, Nom, Salle),\\
+    Salle(Salle, Extension)
+  \end{aligned}
+\]
+Ainsi l'extension dépend uniquement de la salle.
+
+\subsection*{3. Nécessité de la normalisation}
+La normalisation est justifiée si l'on souhaite garantir l'
+intégrité et éviter les anomalies à long terme. Toutefois, pour de très petites relations
+ou en cas de fortes contraintes de performance,
+on peut tolérer un certain dénormalisation.
+
+%-----------------------
+\section*{Formes normales}
+
+\subsection*{Cas 1 : R(ABCD), $F=\{C \to D,\,C \to A,\,B \to C\}$}
+
+\subsubsection*{1. $B^+$}
+On a $B\to C$, $C\to A$, $C\to D$, donc
+\[
+  B^+ = \{B,C,A,D\}.
+\]
+
+\subsubsection*{2. $F^+$ (fermée de $F$)}
+Outre les dépendances initiales, on déduit :
+\[
+  B\to A,
+  \quad B\to D,
+  \quad (...)\quad
+\]
+(on liste l'ensemble des DF impliquées par transitivité)
+
+\subsubsection*{3. Clés}
+Puisque $B^+$ contient tous les attributs, $B$ est clé. Aucune autre singleton ne l'est.
+
+\subsubsection*{4. 3FN ?}
+La DF $C \to A$ viole la 3FN car $C$ n'est pas super-clé et $A$ n'est pas partie d'une clé. Donc \emph{non}.
+
+\subsubsection*{5. Instance redondante}
+Par exemple :
+\begin{center}
+\begin{tabular}{|c|c|c|c|}\hline
+B & C & A & D\\\hline
+b1 & c1 & a1 & d1\\
+b1 & c1 & a1 & d2\\\hline
+\end{tabular}
+\end{center}
+On répète $a1$ à tort.
+
+\subsection*{Cas 2 : R(ABCDE), $F=\{A \to B,\,AB \to D,\,C \to E,\,D \to C,\,AC \to E\}$}
+
+\subsubsection*{1. Clés}
+On calcule $A^+$ : $A\to B$, puis $AB\to D$, $D\to C$, $C\to E$. Ainsi $A^+=\{A,B,D,C,E\}$, donc $A$ est clé.
+
+\subsubsection*{2. FNBC ?}
+La DF $D\to C$ viole la BCNF (l'antécédent D n'est pas super-clé). Donc \emph{non}.
+
+\subsubsection*{3. Décomposition BCNF}
+On choisit la DF violant BCNF, $D\to C$, et on obtient :
+\[
+  R_1(D,C),
+  \quad R_2(A,B,D,E)
+\]
+Puis dans $R_2$, on a $AB\to D$ qui viole BCNF, on décompose encore :
+\[
+  R_{21}(A,B,D),
+  \quad R_{22}(A,B,E)
+\]
+Arbre de décomposition :
+\[
+  R(ABCDE)\;
+  \xrightarrow{D\to C}\;
+  \bigl(R_1(DC),\;R_2(ABDE)\bigr)
+  \xrightarrow{AB\to D}\;
+  \bigl(R_{21}(ABD),\;R_{22}(ABE),\;R_1(DC)\bigr)
+\]
+
+\end{document}
