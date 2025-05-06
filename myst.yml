@@ -17,6 +17,7 @@ project:
       authors: [Yehor KOROTENKO]
       children:
       - file: exams/exam24.tex
+      - file: exams/exam23.tex
       - file: exams/exam22.tex
       - file: exams/exam21.tex
       - file: exams/exam17.tex

@@ -1,0 +1,298 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb}
+\begin{document}
+\title{Solutions de l'examen de Bases de données (Session 2022--2023)}
+\author{Yehor KOROTENKO}
+\date{}
+\maketitle
+
+\section*{A. Requêtes en algèbre relationnelle et en SQL sans jointures ni agrégats}
+\begin{enumerate}
+  \item \textbf{Campings (IdC, Nom) dont la capacité est supérieure à 50}\
+    \textbf{Algèbre relationnelle :}
+    \[
+      \pi_{\mathrm{IdC},\mathrm{Nom}}\bigl(\sigma_{\mathrm{Capacite}>50}(\mathrm{CAMP})\bigr).
+    \]
+    \textbf{Explication :} On applique d'abord la sélection sur l'attribut \texttt{Capacite} de la relation \texttt{CAMP} pour ne retenir que les enregistrements supérieurs à 50, puis on projette les attributs \texttt{IdC} et \texttt{Nom}.\\
+    \textbf{SQL :}
+    \begin{verbatim}
+SELECT IdC, Nom
+FROM CAMP
+WHERE Capacite > 50;
+    \end{verbatim}
+
+  \item \textbf{Personnes (NSS, Nom) ayant fait une réservation de plus de 5 jours}\
+    \textbf{Algèbre relationnelle :}
+    \[
+      \pi_{\mathrm{NSS},\mathrm{Nom}}\Bigl(\sigma_{\mathrm{NbJ}>5 \;\wedge\; P.NSS=G.NSS \;\wedge\; G.IdGP=R.IdGP}(\mathrm{PERS}\times\mathrm{GPE}\times\mathrm{RESA})\Bigr).
+    \]
+    \textbf{Explication :} On considère le produit cartésien de \texttt{PERS}, \texttt{GPE} et \texttt{RESA}, on restreint aux tuples où l'âge de séjour \texttt{NbJ} dépasse 5 et où les conditions d'appartenance (\texttt{PERS.NSS=GPE.NSS} et \texttt{GPE.IdGP=RESA.IdGP}) sont satisfaites, puis on projette les attributs \texttt{NSS} et \texttt{Nom}.\\
+    \textbf{SQL :}
+    \begin{verbatim}
+SELECT DISTINCT P.NSS, P.Nom
+FROM PERS P, GPE G, RESA R
+WHERE P.NSS = G.NSS
+  AND G.IdGP = R.IdGP
+  AND R.NbJ > 5;
+    \end{verbatim}
+
+  \item \textbf{Personnes (NSS, Nom) ayant campé au « Camping du Soleil »}\
+    \textbf{Algèbre relationnelle :}
+    \[
+      \pi_{P.NSS,P.Nom}\Bigl(\sigma_{C.Nom='Camping du Soleil' \;\wedge\; R.IdCamp=C.IdC \;\wedge\; G.IdGP=R.IdGP \;\wedge\; P.NSS=G.NSS}(\mathrm{PERS}\times\mathrm{GPE}\times\mathrm{RESA}\times\mathrm{CAMP})\Bigr).
+    \]
+    \textbf{Explication :} Le produit cartésien de \texttt{PERS}, \texttt{GPE}, \texttt{RESA} et \texttt{CAMP} est filtré pour ne retenir que les réservations liées au camping nommé « Camping du Soleil », puis on projette \texttt{NSS} et \texttt{Nom}.\\
+    \textbf{SQL :}
+    \begin{verbatim}
+SELECT DISTINCT P.NSS, P.Nom
+FROM PERS P, GPE G, RESA R, CAMP C
+WHERE P.NSS = G.NSS
+  AND G.IdGP = R.IdGP
+  AND R.IdCamp = C.IdC
+  AND C.Nom = 'Camping du Soleil';
+    \end{verbatim}
+
+  \item \textbf{Personnes (NSS, Nom) ayant séjourné dans un même camping que « Zoé »}\
+    \textbf{Algèbre relationnelle :}
+    \[
+      \pi_{P_2.NSS,P_2.Nom}\Bigl(\sigma_{
+        P_1.NSS=G_1.NSS \;\wedge\; G_1.IdGP=R_1.IdGP \;\wedge\;
+        G_1.NSS='Zoé' \;\wedge\;
+        P_2.NSS=G_2.NSS \;\wedge\; G_2.IdGP=R_2.IdGP \;\wedge\;
+        R_1.IdCamp=R_2.IdCamp
+      }(P_1 \times G_1 \times R_1 \times P_2 \times G_2 \times R_2)\Bigr).
+    \]
+    \textbf{Explication :} On distingue deux occurrences des relations \texttt{PERS}, \texttt{GPE} et \texttt{RESA} : l'une pour « Zoé » (indices \texttt{1}) et l'autre pour les autres personnes (indices \texttt{2}). On impose que \texttt{Zoé} ait réservé dans un camping dont l'identifiant coïncide avec celui d'une réservation faite par une autre personne, et on projette les informations de cette dernière.\\
+    \textbf{SQL :}
+    \begin{verbatim}
+SELECT DISTINCT P2.NSS, P2.Nom
+FROM PERS P1, GPE G1, RESA R1,
+     PERS P2, GPE G2, RESA R2
+WHERE P1.NSS = G1.NSS
+  AND G1.IdGP = R1.IdGP
+  AND G1.NSS = 'Zoé'
+  AND P2.NSS = G2.NSS
+  AND G2.IdGP = R2.IdGP
+  AND R1.IdCamp = R2.IdCamp;
+    \end{verbatim}
+
+  \item \textbf{Personnes (NSS, Nom) n’ayant jamais campé}\
+    \textbf{Algèbre relationnelle :}
+    \[
+      \pi_{\mathrm{NSS},\mathrm{Nom}}(\mathrm{PERS})
+      \;-\;
+      \pi_{\mathrm{NSS},\mathrm{Nom}}(\sigma_{P.NSS=G.NSS\;\wedge\;G.IdGP=R.IdGP}(\mathrm{PERS}\times\mathrm{GPE}\times\mathrm{RESA})).
+    \]
+    \textbf{Explication :} On prend la différence entre l'ensemble de toutes les personnes et celles ayant au moins une réservation (via \texttt{GPE} et \texttt{RESA}).\\
+    \textbf{SQL :}
+    \begin{verbatim}
+SELECT NSS, Nom
+FROM PERS
+EXCEPT
+SELECT DISTINCT P.NSS, P.Nom
+FROM PERS P, GPE G, RESA R
+WHERE P.NSS = G.NSS
+  AND G.IdGP = R.IdGP;
+    \end{verbatim}
+
+  \item \textbf{Personnes (NSS, Nom) n’ayant jamais fréquenté un même camping que « Zoé »}\
+    \textbf{Algèbre relationnelle :}
+    \[
+      \pi_{\mathrm{NSS},\mathrm{Nom}}(\mathrm{PERS})
+      \;-\;
+      \pi_{P_2.NSS,P_2.Nom}(\text{résultat de la requête A.4}).
+    \]
+    \textbf{Explication :} On soustrait à l'ensemble de toutes les personnes celles identifiées en A.4.\\
+    \textbf{SQL :}
+    \begin{verbatim}
+SELECT NSS, Nom
+FROM PERS
+EXCEPT
+SELECT DISTINCT P2.NSS, P2.Nom
+FROM PERS P1, GPE G1, RESA R1,
+     PERS P2, GPE G2, RESA R2
+WHERE P1.NSS = G1.NSS
+  AND G1.IdGP = R1.IdGP
+  AND G1.NSS = 'Zoé'
+  AND P2.NSS = G2.NSS
+  AND G2.IdGP = R2.IdGP
+  AND R1.IdCamp = R2.IdCamp;
+    \end{verbatim}
+
+  \item \textbf{Personnes (NSS, Nom) ayant effectué au moins deux séjours dans le même camping}\
+    \textbf{Algèbre relationnelle :}
+    \[
+      \pi_{P.NSS,P.Nom}\Bigl(\sigma_{
+        P.NSS=G_1.NSS\;\wedge\;G_1.IdGP=R_1.IdGP
+        \;\wedge\;P.NSS=G_2.NSS\;\wedge\;G_2.IdGP=R_2.IdGP
+        \;\wedge\;R_1.IdCamp=R_2.IdCamp
+        \;\wedge\;(R_1.Date\neq R_2.Date)
+      }(P \times G_1 \times R_1 \times G_2 \times R_2))
+    \]
+    \textbf{Explication :} On utilise deux copies de \texttt{GPE} et \texttt{RESA} pour détecter deux réservations distinctes (dates différentes) dans un même camping pour une même personne.\\
+    \textbf{SQL :}
+    \begin{verbatim}
+SELECT DISTINCT P.NSS, P.Nom
+FROM PERS P,
+     GPE G1, RESA R1,
+     GPE G2, RESA R2
+WHERE P.NSS = G1.NSS
+  AND G1.IdGP = R1.IdGP
+  AND P.NSS = G2.NSS
+  AND G2.IdGP = R2.IdGP
+  AND R1.IdCamp = R2.IdCamp
+  AND R1.Date <> R2.Date;
+    \end{verbatim}
+\end{enumerate}
+
+\section*{B. Requête en algèbre relationnelle uniquement}
+\textbf{8. Personnes (NSS, Nom) ayant fréquenté \emph{tous} les campings 3 étoiles de la ville de « Dax »}\
+\[
+  \text{Soit }C = \sigma_{\mathrm{Ville}='Dax'\;\wedge\;\mathrm{Etoile}=3}(\mathrm{CAMP}),
+\]
+\[
+  \text{Fréq} = \pi_{\mathrm{NSS},\mathrm{IdCamp}}(\mathrm{PERS}\;
+      \underset{\mathrm{NSS}=\mathrm{NSS}}{\bowtie}\;
+      \mathrm{GPE}\;
+      \underset{\mathrm{IdGP}=\mathrm{IdGP}}{\bowtie}\;
+      \mathrm{RESA}),
+\]
+\[
+  \text{Résultat} = \pi_{\mathrm{NSS},\mathrm{Nom}}\bigl((\text{Fréq}\div\pi_{\mathrm{IdCamp}}(C))\;
+      \underset{\mathrm{NSS}=\mathrm{NSS}}{\bowtie}\;
+      \mathrm{PERS}\bigr).
+\]
+\textbf{Explication :} On effectue une division relationnelle entre la relation des fréquents (mappings \texttt{NSS}–\texttt{IdCamp}) et l'ensemble des campings 3 étoiles de « Dax ». Le résultat donne les \texttt{NSS} ayant visité \emph{tous} ces campings, puis on rejoint pour obtenir le nom.\\
+
+\section*{C. Requêtes SQL avec agrégats, sous‐requêtes et vues (sans jointures explicites)}
+\begin{enumerate}
+  \item[9.] \textbf{Nombre de réservations dans les campings de la ville de « Dax »}\\
+    \begin{verbatim}
+SELECT COUNT(*) AS nb_reservations
+FROM RESA R, CAMP C
+WHERE R.IdCamp = C.IdC
+  AND C.Ville = 'Dax';
+    \end{verbatim}
+  \item[10.] \textbf{Villes dont le nombre de campings 3 étoiles est supérieur à la moyenne nationale}\\
+    \begin{verbatim}
+SELECT Villes.Ville
+FROM (
+  SELECT Ville, COUNT(*) AS nb3
+  FROM CAMP
+  WHERE Etoile = 3
+  GROUP BY Ville
+) AS Villes
+WHERE nb3 > (
+  SELECT AVG(nb3)
+  FROM (
+    SELECT COUNT(*) AS nb3
+    FROM CAMP
+    WHERE Etoile = 3
+    GROUP BY Ville
+  ) AS Moyenne
+);
+    \end{verbatim}
+  \item[11.] \textbf{Personnes (NSS, Nom) ayant fréquenté tous les campings 3 étoiles de « Dax »}\\
+    \begin{verbatim}
+SELECT P.NSS, P.Nom
+FROM PERS P
+WHERE NOT EXISTS (
+  SELECT C.IdC
+  FROM CAMP C
+  WHERE C.Ville = 'Dax'
+    AND C.Etoile = 3
+    AND NOT EXISTS (
+      SELECT *
+      FROM GPE G, RESA R
+      WHERE G.NSS = P.NSS
+        AND G.IdGP = R.IdGP
+        AND R.IdCamp = C.IdC
+    )
+);
+    \end{verbatim}
+\end{enumerate}
+
+\section*{D. Normalisation du schéma \texttt{CarLoc}}  
+Le schéma initial :
+\[CarLoc(\;IdCl, NomCl, IdCar, Type, DDeb, DFin, Coût, IdAg, NomAg\;)\]
+avec l'ensemble des dépendances fonctionnelles~$F$ :
+\begin{itemize}
+  \item $IdCl \to NomCl$ 
+  \item $IdAg \to NomAg$  
+  \item $NomAg \to IdAg$  
+  \item $IdCl,IdCar \to DDeb,DFin$  
+  \item $IdCar \to Type,Coût,IdAg,NomAg$  
+\end{itemize}
+
+\subsection*{Q1. Clés du schéma $(CarLoc,F)$}
+On cherche un ensemble minimal $K$ tel que $K^+ = \{IdCl,NomCl,IdCar,Type,DDeb,DFin,Coût,IdAg,NomAg\}$.  
+Vérifions $\{IdCl,IdCar\}$ :
+\begin{align*}
+\{IdCl,IdCar\}^+ &\supseteq \{IdCl,IdCar\} \\
+&\quad\stackrel{IdCl\to NomCl}{\longrightarrow} \{IdCl,IdCar,NomCl\} \\
+&\quad\stackrel{IdCar\to Type,Coût,IdAg,NomAg}{\longrightarrow} 
+       \{IdCl,IdCar,NomCl,Type,Coût,IdAg,NomAg\} \\
+&\quad\stackrel{IdCl,IdCar\to DDeb,DFin}{\longrightarrow}
+       \{IdCl,IdCar,NomCl,Type,Coût,IdAg,NomAg,DDeb,DFin\}.
+\end{align*}
+Aucun sous-ensemble propre ne détermine ainsi toutes les attributs.  
+\textbf{Donc la clé candidate est} $\{IdCl,IdCar\}$.\\
+
+\subsection*{Q2. Vérification de la 3\`eme forme normale (3FN)}
+Une FD $X\to A$ viole la 3FN si $X$ n'est pas une super-clé et $A$ n'est pas un attribut prime (appartenant à une clé).  
+\begin{itemize}
+  \item $IdCl\to NomCl$ : $IdCl$ n'est pas super-clé, $NomCl\notin\{IdCl,IdCar\}$ → violation.
+  \item $IdAg\to NomAg$ : $IdAg$ n'est pas super-clé, $NomAg$ non prime → violation.
+  \item $NomAg\to IdAg$ : $NomAg$ n'est pas super-clé, $IdAg$ non prime → violation.
+\end{itemize}
+\textbf{Conclusion : Le schéma n'est pas en 3\`eme forme normale.}\\
+
+\subsection*{Q3. Non conformité à la forme normale de Boyce–Codd (FNBC)}
+En FNBC, toute FD non triviale $X\to A$ doit avoir $X$ super-clé.  
+Or, par exemple, $IdCar\to Type$ avec $IdCar$ non super-clé → violation de BCNF.  
+\textbf{Donc le schéma n'est pas en FNBC.}\\
+
+\subsection*{Q4. Décomposition en FNBC}
+On applique l'algorithme de décomposition :
+\begin{enumerate}
+  \item FD violant BCNF : $IdCar\to Type,Coût,IdAg,NomAg$.  
+    Décomposition en :
+    \begin{itemize}
+      \item $R_1(IdCar,Type,Coût,IdAg,NomAg)$
+      \item $R_2(IdCl,NomCl,IdCar,DDeb,DFin)$
+    \end{itemize}
+  \item Vérification et seconde décomposition de $R_1$ :  
+    FD interne $NomAg\to IdAg$ violant BCNF dans $R_1$.  
+    On décompose $R_1$ en :
+    \begin{itemize}
+      \item $R_{1a}(NomAg,IdAg)$
+      \item $R_{1b}(IdCar,Type,Coût,IdAg)$
+    \end{itemize}
+  \item Vérification et décomposition de $R_2$ :  
+    FD interne $IdCl\to NomCl$ violant BCNF dans $R_2$.  
+    On décompose $R_2$ en :
+    \begin{itemize}
+      \item $R_{2a}(IdCl,NomCl)$
+      \item $R_{2b}(IdCl,IdCar,DDeb,DFin)$
+    \end{itemize}
+  \item Vérification finale :
+    \begin{itemize}
+      \item $R_{1a}$ : $NomAg\to IdAg$ et $IdAg\to NomAg$ → les deux attributs sont clés → BCNF.
+      \item $R_{1b}$ : $IdCar\to Type,Coût,IdAg$ → $IdCar$ clé de $R_{1b}$ → BCNF.
+      \item $R_{2a}$ : $IdCl\to NomCl$ avec $IdCl$ clé → BCNF.
+      \item $R_{2b}$ : $IdCl,IdCar\to DDeb,DFin$ avec LHS clé → BCNF.
+    \end{itemize}
+\end{enumerate}
+
+\noindent\textbf{Schéma final en FNBC :}
+\begin{align*}
+R_{1a}(NomAg,IdAg), \quad
+R_{1b}(IdCar,Type,Coût,IdAg),\\
+R_{2a}(IdCl,NomCl), \quad
+R_{2b}(IdCl,IdCar,DDeb,DFin).
+\end{align*}
+
+\end{document}

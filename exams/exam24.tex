@@ -1,298 +1,347 @@
-\documentclass[a4paper,11pt]{article}
+\documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[french]{babel}
 \usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\geometry{margin=1in}
+
 \begin{document}
-\title{Solutions de l'examen de Bases de données (Session 2022--2023)}
-\author{Yehor KOROTENKO}
+
+\title{\textbf{Corrigé de l'Examen de Bases de données (Licence 2) -- 1\textsuperscript{re} session 2023--2024}}
 \date{}
 \maketitle
 
-\section*{A. Requêtes en algèbre relationnelle et en SQL sans jointures ni agrégats}
+\section*{Partie 1 : Requêtes -- Algèbre \& SQL}
+
+\subsection*{Exercice A.1}
+\textbf{Énoncé.} Donnez le nom des équipements situés au repère GPS \texttt{345\_78S}.\\
+
+\paragraph{Algèbre relationnelle}
+\[
+\pi_{\text{Nom}}\bigl(\sigma_{\text{GPS}='345\_78S'}(\text{Equip})\bigr)
+\]
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT Nom
+FROM Equip
+WHERE GPS = '345_78S';
+\end{verbatim}
+
+\paragraph{Explication.}
+On commence par sélectionner dans la relation \texttt{Equip} toutes les lignes où l'attribut \texttt{GPS} vaut \texttt{'345\_78S'}. Ensuite, on projette sur l'attribut \texttt{Nom} pour ne conserver que le nom de l'équipement.
+
+\subsection*{Exercice A.2}
+\textbf{Énoncé.} Quelles sont les épreuves (identifiants) de ski ?\\
+
+\paragraph{Algèbre relationnelle}
+\[
+\pi_{\text{IdE}}\bigl(\sigma_{\text{Nom}='ski'}(Sport) \;\;\bowtie\; \text{Sport.IdS}=\text{Epreuve.IdS}\;\;Epreuve\bigr)
+\]
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT E.IdE
+FROM Epreuve E
+JOIN Sport S ON E.IdS = S.IdS
+WHERE S.Nom = 'ski';
+\end{verbatim}
+
+\paragraph{Explication.}
+On effectue une jointure entre \texttt{Epreuve} et \texttt{Sport} sur l'identifiant du sport \texttt{IdS}, puis on sélectionne les lignes où le nom du sport est \texttt{'ski'}. Enfin, on projette uniquement l'identifiant d'épreuve \texttt{IdE}.
+
+\subsection*{Exercice A.3}
+\textbf{Énoncé.} Quelles sont les épreuves (identifiants) de sports individuels qui ont eu lieu au repère GPS \texttt{345\_78S} ?\\
+
+\paragraph{Algèbre relationnelle}
+\[
+\pi_{E.IdE}\bigl(
+  \sigma_{\text{TP}='individuelle'\;\wedge\;\text{GPS}='345\_78S'}
+    \bigl(Sport \bowtie_{Sport.IdS = Epreuve.IdS} Epreuve \bowtie_{Epreuve.IdEq = Equip.IdEq} Equip\bigr)
+\bigr)
+\]
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT E.IdE
+FROM Epreuve E
+JOIN Sport S ON E.IdS = S.IdS
+JOIN Equip  Q ON E.IdEq = Q.IdEq
+WHERE S.TP = 'individuelle'
+  AND Q.GPS = '345_78S';
+\end{verbatim}
+
+\paragraph{Explication.}
+On réalise une triple jointure : d'abord entre \texttt{Epreuve} et \texttt{Sport} pour filtrer par type de pratique \texttt{'individuelle'}, puis avec \texttt{Equip} pour filtrer les équipements situés au \texttt{GPS='345\_78S'}. On projette enfin l'identifiant \texttt{IdE} des épreuves correspondantes.
+
+\subsection*{Exercice A.4}
+\textbf{Énoncé.} Quels sont les sports (noms) pour lesquels aucune épreuve n'est prévue ?\\
+
+\paragraph{Algèbre relationnelle}
+\[
+\pi_{\text{Nom}}(Sport) \\
+\; - \\
+\pi_{S.Nom}\bigl(Sport \bowtie_{Sport.IdS = Epreuve.IdS} Epreuve\bigr)
+\]
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT Nom
+FROM Sport
+WHERE IdS NOT IN (
+  SELECT IdS FROM Epreuve
+);
+\end{verbatim}
+
+\paragraph{Explication.}
+On récupère d'abord tous les noms de sports, puis on soustrait ceux qui apparaissent dans la relation \texttt{Epreuve}. En SQL, on utilise une sous-requête pour exclure les sports dont l'identifiant \texttt{IdS} figure dans \texttt{Epreuve}.
+
+\subsection*{Exercice A.5}
+\textbf{Énoncé.} Quels sports (nom et TP) ont utilisé pour au moins une de leurs épreuves le même équipement que l'épreuve de ski individuel du 14-02-2014 ?\\
+
+\paragraph{Algèbre relationnelle}
+\[
+\begin{array}{l}
+\pi_{S2.Nom,S2.TP} \\ \Bigl(
+  (S2 \bowtie_{S2.IdS=E2.IdS} Epreuve\ E2)
+  \;
+  \cap
+  \;
+  \pi_{S.IdS}\bigl(
+    \sigma_{Nom='ski'\;\wedge\;TP='individuelle'\;\wedge\;Date='2014-02-14'}
+      (Sport \bowtie Epreuve)
+  \bigr)
+\Bigr)
+\end{array}
+\]
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT DISTINCT S2.Nom, S2.TP
+FROM Sport S2
+JOIN Epreuve E2 ON S2.IdS = E2.IdS
+WHERE E2.IdEq = (
+  SELECT E1.IdEq
+  FROM Epreuve E1
+  JOIN Sport S1 ON E1.IdS = S1.IdS
+  WHERE S1.Nom = 'ski'
+    AND S1.TP = 'individuelle'
+    AND E1.Date = '2014-02-14'
+);
+\end{verbatim}
+
+\paragraph{Explication.}
 \begin{enumerate}
-  \item \textbf{Campings (IdC, Nom) dont la capacité est supérieure à 50}\
-    \textbf{Algèbre relationnelle :}
-    \[
-      \pi_{\mathrm{IdC},\mathrm{Nom}}\bigl(\sigma_{\mathrm{Capacite}>50}(\mathrm{CAMP})\bigr).
-    \]
-    \textbf{Explication :} On applique d'abord la sélection sur l'attribut \texttt{Capacite} de la relation \texttt{CAMP} pour ne retenir que les enregistrements supérieurs à 50, puis on projette les attributs \texttt{IdC} et \texttt{Nom}.\\
-    \textbf{SQL :}
-    \begin{verbatim}
-SELECT IdC, Nom
-FROM CAMP
-WHERE Capacite > 50;
-    \end{verbatim}
-
-  \item \textbf{Personnes (NSS, Nom) ayant fait une réservation de plus de 5 jours}\
-    \textbf{Algèbre relationnelle :}
-    \[
-      \pi_{\mathrm{NSS},\mathrm{Nom}}\Bigl(\sigma_{\mathrm{NbJ}>5 \;\wedge\; P.NSS=G.NSS \;\wedge\; G.IdGP=R.IdGP}(\mathrm{PERS}\times\mathrm{GPE}\times\mathrm{RESA})\Bigr).
-    \]
-    \textbf{Explication :} On considère le produit cartésien de \texttt{PERS}, \texttt{GPE} et \texttt{RESA}, on restreint aux tuples où l'âge de séjour \texttt{NbJ} dépasse 5 et où les conditions d'appartenance (\texttt{PERS.NSS=GPE.NSS} et \texttt{GPE.IdGP=RESA.IdGP}) sont satisfaites, puis on projette les attributs \texttt{NSS} et \texttt{Nom}.\\
-    \textbf{SQL :}
-    \begin{verbatim}
-SELECT DISTINCT P.NSS, P.Nom
-FROM PERS P, GPE G, RESA R
-WHERE P.NSS = G.NSS
-  AND G.IdGP = R.IdGP
-  AND R.NbJ > 5;
-    \end{verbatim}
-
-  \item \textbf{Personnes (NSS, Nom) ayant campé au « Camping du Soleil »}\
-    \textbf{Algèbre relationnelle :}
-    \[
-      \pi_{P.NSS,P.Nom}\Bigl(\sigma_{C.Nom='Camping du Soleil' \;\wedge\; R.IdCamp=C.IdC \;\wedge\; G.IdGP=R.IdGP \;\wedge\; P.NSS=G.NSS}(\mathrm{PERS}\times\mathrm{GPE}\times\mathrm{RESA}\times\mathrm{CAMP})\Bigr).
-    \]
-    \textbf{Explication :} Le produit cartésien de \texttt{PERS}, \texttt{GPE}, \texttt{RESA} et \texttt{CAMP} est filtré pour ne retenir que les réservations liées au camping nommé « Camping du Soleil », puis on projette \texttt{NSS} et \texttt{Nom}.\\
-    \textbf{SQL :}
-    \begin{verbatim}
-SELECT DISTINCT P.NSS, P.Nom
-FROM PERS P, GPE G, RESA R, CAMP C
-WHERE P.NSS = G.NSS
-  AND G.IdGP = R.IdGP
-  AND R.IdCamp = C.IdC
-  AND C.Nom = 'Camping du Soleil';
-    \end{verbatim}
-
-  \item \textbf{Personnes (NSS, Nom) ayant séjourné dans un même camping que « Zoé »}\
-    \textbf{Algèbre relationnelle :}
-    \[
-      \pi_{P_2.NSS,P_2.Nom}\Bigl(\sigma_{
-        P_1.NSS=G_1.NSS \;\wedge\; G_1.IdGP=R_1.IdGP \;\wedge\;
-        G_1.NSS='Zoé' \;\wedge\;
-        P_2.NSS=G_2.NSS \;\wedge\; G_2.IdGP=R_2.IdGP \;\wedge\;
-        R_1.IdCamp=R_2.IdCamp
-      }(P_1 \times G_1 \times R_1 \times P_2 \times G_2 \times R_2)\Bigr).
-    \]
-    \textbf{Explication :} On distingue deux occurrences des relations \texttt{PERS}, \texttt{GPE} et \texttt{RESA} : l'une pour « Zoé » (indices \texttt{1}) et l'autre pour les autres personnes (indices \texttt{2}). On impose que \texttt{Zoé} ait réservé dans un camping dont l'identifiant coïncide avec celui d'une réservation faite par une autre personne, et on projette les informations de cette dernière.\\
-    \textbf{SQL :}
-    \begin{verbatim}
-SELECT DISTINCT P2.NSS, P2.Nom
-FROM PERS P1, GPE G1, RESA R1,
-     PERS P2, GPE G2, RESA R2
-WHERE P1.NSS = G1.NSS
-  AND G1.IdGP = R1.IdGP
-  AND G1.NSS = 'Zoé'
-  AND P2.NSS = G2.NSS
-  AND G2.IdGP = R2.IdGP
-  AND R1.IdCamp = R2.IdCamp;
-    \end{verbatim}
-
-  \item \textbf{Personnes (NSS, Nom) n’ayant jamais campé}\
-    \textbf{Algèbre relationnelle :}
-    \[
-      \pi_{\mathrm{NSS},\mathrm{Nom}}(\mathrm{PERS})
-      \;-\;
-      \pi_{\mathrm{NSS},\mathrm{Nom}}(\sigma_{P.NSS=G.NSS\;\wedge\;G.IdGP=R.IdGP}(\mathrm{PERS}\times\mathrm{GPE}\times\mathrm{RESA})).
-    \]
-    \textbf{Explication :} On prend la différence entre l'ensemble de toutes les personnes et celles ayant au moins une réservation (via \texttt{GPE} et \texttt{RESA}).\\
-    \textbf{SQL :}
-    \begin{verbatim}
-SELECT NSS, Nom
-FROM PERS
-EXCEPT
-SELECT DISTINCT P.NSS, P.Nom
-FROM PERS P, GPE G, RESA R
-WHERE P.NSS = G.NSS
-  AND G.IdGP = R.IdGP;
-    \end{verbatim}
-
-  \item \textbf{Personnes (NSS, Nom) n’ayant jamais fréquenté un même camping que « Zoé »}\
-    \textbf{Algèbre relationnelle :}
-    \[
-      \pi_{\mathrm{NSS},\mathrm{Nom}}(\mathrm{PERS})
-      \;-\;
-      \pi_{P_2.NSS,P_2.Nom}(\text{résultat de la requête A.4}).
-    \]
-    \textbf{Explication :} On soustrait à l'ensemble de toutes les personnes celles identifiées en A.4.\\
-    \textbf{SQL :}
-    \begin{verbatim}
-SELECT NSS, Nom
-FROM PERS
-EXCEPT
-SELECT DISTINCT P2.NSS, P2.Nom
-FROM PERS P1, GPE G1, RESA R1,
-     PERS P2, GPE G2, RESA R2
-WHERE P1.NSS = G1.NSS
-  AND G1.IdGP = R1.IdGP
-  AND G1.NSS = 'Zoé'
-  AND P2.NSS = G2.NSS
-  AND G2.IdGP = R2.IdGP
-  AND R1.IdCamp = R2.IdCamp;
-    \end{verbatim}
-
-  \item \textbf{Personnes (NSS, Nom) ayant effectué au moins deux séjours dans le même camping}\
-    \textbf{Algèbre relationnelle :}
-    \[
-      \pi_{P.NSS,P.Nom}\Bigl(\sigma_{
-        P.NSS=G_1.NSS\;\wedge\;G_1.IdGP=R_1.IdGP
-        \;\wedge\;P.NSS=G_2.NSS\;\wedge\;G_2.IdGP=R_2.IdGP
-        \;\wedge\;R_1.IdCamp=R_2.IdCamp
-        \;\wedge\;(R_1.Date\neq R_2.Date)
-      }(P \times G_1 \times R_1 \times G_2 \times R_2))
-    \]
-    \textbf{Explication :} On utilise deux copies de \texttt{GPE} et \texttt{RESA} pour détecter deux réservations distinctes (dates différentes) dans un même camping pour une même personne.\\
-    \textbf{SQL :}
-    \begin{verbatim}
-SELECT DISTINCT P.NSS, P.Nom
-FROM PERS P,
-     GPE G1, RESA R1,
-     GPE G2, RESA R2
-WHERE P.NSS = G1.NSS
-  AND G1.IdGP = R1.IdGP
-  AND P.NSS = G2.NSS
-  AND G2.IdGP = R2.IdGP
-  AND R1.IdCamp = R2.IdCamp
-  AND R1.Date <> R2.Date;
-    \end{verbatim}
+  \item On identifie d'abord l'équipement \texttt{IdEq} utilisé par l'épreuve de \texttt{ski} individuelle du 14 février 2014 à l'aide d'une sous-requête.
+  \item Puis on sélectionne tous les sports \texttt{S2} qui ont au moins une épreuve utilisant ce même \texttt{IdEq}, en joignant \texttt{Sport} et \texttt{Epreuve}. On élimine les doublons grâce à \texttt{DISTINCT}.
 \end{enumerate}
 
-\section*{B. Requête en algèbre relationnelle uniquement}
-\textbf{8. Personnes (NSS, Nom) ayant fréquenté \emph{tous} les campings 3 étoiles de la ville de « Dax »}\
-\[
-  \text{Soit }C = \sigma_{\mathrm{Ville}='Dax'\;\wedge\;\mathrm{Etoile}=3}(\mathrm{CAMP}),
-\]
-\[
-  \text{Fréq} = \pi_{\mathrm{NSS},\mathrm{IdCamp}}(\mathrm{PERS}\;
-      \underset{\mathrm{NSS}=\mathrm{NSS}}{\bowtie}\;
-      \mathrm{GPE}\;
-      \underset{\mathrm{IdGP}=\mathrm{IdGP}}{\bowtie}\;
-      \mathrm{RESA}),
-\]
-\[
-  \text{Résultat} = \pi_{\mathrm{NSS},\mathrm{Nom}}\bigl((\text{Fréq}\div\pi_{\mathrm{IdCamp}}(C))\;
-      \underset{\mathrm{NSS}=\mathrm{NSS}}{\bowtie}\;
-      \mathrm{PERS}\bigr).
-\]
-\textbf{Explication :} On effectue une division relationnelle entre la relation des fréquents (mappings \texttt{NSS}–\texttt{IdCamp}) et l'ensemble des campings 3 étoiles de « Dax ». Le résultat donne les \texttt{NSS} ayant visité \emph{tous} ces campings, puis on rejoint pour obtenir le nom.\\
+\subsection*{Exercice A.6}
+\textbf{Énoncé.} Quels sont les équipements (noms) qui n'ont jamais été utilisés ?\\
 
-\section*{C. Requêtes SQL avec agrégats, sous‐requêtes et vues (sans jointures explicites)}
-\begin{enumerate}
-  \item[9.] \textbf{Nombre de réservations dans les campings de la ville de « Dax »}\\
-    \begin{verbatim}
-SELECT COUNT(*) AS nb_reservations
-FROM RESA R, CAMP C
-WHERE R.IdCamp = C.IdC
-  AND C.Ville = 'Dax';
-    \end{verbatim}
-  \item[10.] \textbf{Villes dont le nombre de campings 3 étoiles est supérieur à la moyenne nationale}\\
-    \begin{verbatim}
-SELECT Villes.Ville
-FROM (
-  SELECT Ville, COUNT(*) AS nb3
-  FROM CAMP
-  WHERE Etoile = 3
-  GROUP BY Ville
-) AS Villes
-WHERE nb3 > (
-  SELECT AVG(nb3)
-  FROM (
-    SELECT COUNT(*) AS nb3
-    FROM CAMP
-    WHERE Etoile = 3
-    GROUP BY Ville
-  ) AS Moyenne
+\paragraph{Algèbre relationnelle}
+\[
+\pi_{\text{Nom}}(Equip)
+\;-
+\pi_{Q.Nom}\bigl(Equip \bowtie_{Equip.IdEq=Epreuve.IdEq} Epreuve\bigr)
+\]
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT Nom
+FROM Equip
+WHERE IdEq NOT IN (
+  SELECT IdEq FROM Epreuve
 );
-    \end{verbatim}
-  \item[11.] \textbf{Personnes (NSS, Nom) ayant fréquenté tous les campings 3 étoiles de « Dax »}\\
-    \begin{verbatim}
-SELECT P.NSS, P.Nom
-FROM PERS P
+\end{verbatim}
+
+\paragraph{Explication.}
+On liste tous les équipements puis on soustrait ceux dont l'identifiant \texttt{IdEq} apparaît dans la relation \texttt{Epreuve}. Cela donne les équipements jamais utilisés.
+
+\subsection*{Exercice A.7}
+\textbf{Énoncé.} Quels sont les équipements (identifiants) ayant été utilisés au moins deux fois ?\\
+
+\paragraph{Algèbre relationnelle}
+\[
+\pi_{IdEq}\Bigl(\sigma_{\text{Count} \ge 2}
+  \bigl(\gamma_{IdEq;\;\mathrm{COUNT}(IdEq) \to \text{Count}}(Epreuve)\bigr)
+\Bigr)
+\]
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT IdEq
+FROM Epreuve
+GROUP BY IdEq
+HAVING COUNT(*) >= 2;
+\end{verbatim}
+
+\paragraph{Explication.}
+On groupe les lignes de \texttt{Epreuve} par \texttt{IdEq}, on calcule le nombre d'occurrences par groupe, puis on ne conserve que ceux dont le compte est supérieur ou égal à 2.
+
+\subsection*{Exercice B.8}
+\textbf{Énoncé.} Donnez les lieux (GPS) où tous les sports ont été programmés.\\
+
+\paragraph{Algèbre relationnelle}
+\[
+\pi_{GPS}(Equip) \\
+\;\div\; \\
+\pi_{IdS}(Sport)
+\]
+
+\paragraph{Explication.}
+L'opérateur division permet de sélectionner les \texttt{GPS} pour lesquels l'ensemble des sports (tous les \texttt{IdS} de \texttt{Sport}) ont au moins une épreuve. On divise la relation \texttt{Equip \bowtie Epreuve} projetée sur \texttt{(GPS, IdS)} par \texttt{(IdS)}.
+
+\section*{Partie 1 : Requêtes -- SQL avec agrégats et sous-requêtes}
+
+\subsection*{Exercice C.9}
+\textbf{Énoncé.} Combien y a-t-il d'équipements situés au repère GPS \texttt{345\_78S} ?\\
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT COUNT(*) AS nb
+FROM Equip
+WHERE GPS = '345_78S';
+\end{verbatim}
+
+\paragraph{Explication.}
+On applique une sélection sur l'attribut \texttt{GPS}, puis on utilise \texttt{COUNT(*)} pour compter le nombre de lignes restantes.
+
+\subsection*{Exercice C.10}
+\textbf{Énoncé.} Quels sont les équipements (identifiants) ayant été utilisés au moins 10 fois ?\\
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT IdEq
+FROM Epreuve
+GROUP BY IdEq
+HAVING COUNT(*) >= 10;
+\end{verbatim}
+
+\paragraph{Explication.}
+Même raisonnement que l'exercice A.7, mais avec un seuil de 10.
+
+\subsection*{Exercice C.11}
+\textbf{Énoncé.} Donnez pour chaque sport (identifiant et nom) la durée moyenne des épreuves pour ce sport.\\
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT S.IdS, S.Nom, AVG(E.Durée) AS duree_moyenne
+FROM Sport S
+JOIN Epreuve E ON S.IdS = E.IdS
+GROUP BY S.IdS, S.Nom;
+\end{verbatim}
+
+\paragraph{Explication.}
+On joint \texttt{Sport} et \texttt{Epreuve} pour associer chaque épreuve à son sport, puis on groupe par sport et on calcule la moyenne des durées.
+
+\subsection*{Exercice C.12}
+\textbf{Énoncé.} Donnez les lieux (GPS) où tous les sports ont été programmés.\\
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT Q.GPS
+FROM Equip Q
 WHERE NOT EXISTS (
-  SELECT C.IdC
-  FROM CAMP C
-  WHERE C.Ville = 'Dax'
-    AND C.Etoile = 3
-    AND NOT EXISTS (
-      SELECT *
-      FROM GPE G, RESA R
-      WHERE G.NSS = P.NSS
-        AND G.IdGP = R.IdGP
-        AND R.IdCamp = C.IdC
-    )
+  SELECT 1
+  FROM Sport S
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM Epreuve E
+    WHERE E.IdEq = Q.IdEq
+      AND E.IdS = S.IdS
+  )
 );
-    \end{verbatim}
-\end{enumerate}
+\end{verbatim}
 
-\section*{D. Normalisation du schéma \texttt{CarLoc}}  
-Le schéma initial :
-\[CarLoc(\;IdCl, NomCl, IdCar, Type, DDeb, DFin, Coût, IdAg, NomAg\;)\]
-avec l'ensemble des dépendances fonctionnelles~$F$ :
-\begin{itemize}
-  \item $IdCl \to NomCl$ 
-  \item $IdAg \to NomAg$  
-  \item $NomAg \to IdAg$  
-  \item $IdCl,IdCar \to DDeb,DFin$  
-  \item $IdCar \to Type,Coût,IdAg,NomAg$  
-\end{itemize}
+\paragraph{Explication.}
+On utilise une double sous-requête \texttt{NOT EXISTS} pour garantir qu'aucun sport \texttt{S} ne manque une épreuve au lieu \texttt{Q.GPS}.
 
-\subsection*{Q1. Clés du schéma $(CarLoc,F)$}
-On cherche un ensemble minimal $K$ tel que $K^+ = \{IdCl,NomCl,IdCar,Type,DDeb,DFin,Coût,IdAg,NomAg\}$.  
-Vérifions $\{IdCl,IdCar\}$ :
-\begin{align*}
-\{IdCl,IdCar\}^+ &\supseteq \{IdCl,IdCar\} \\
-&\quad\stackrel{IdCl\to NomCl}{\longrightarrow} \{IdCl,IdCar,NomCl\} \\
-&\quad\stackrel{IdCar\to Type,Coût,IdAg,NomAg}{\longrightarrow} 
-       \{IdCl,IdCar,NomCl,Type,Coût,IdAg,NomAg\} \\
-&\quad\stackrel{IdCl,IdCar\to DDeb,DFin}{\longrightarrow}
-       \{IdCl,IdCar,NomCl,Type,Coût,IdAg,NomAg,DDeb,DFin\}.
-\end{align*}
-Aucun sous-ensemble propre ne détermine ainsi toutes les attributs.  
-\textbf{Donc la clé candidate est} $\{IdCl,IdCar\}$.\\
+\section*{Partie 2 : SQL -- Agrégats sur l'instance R}
+Soit la relation \texttt{R(A,B,C,D)} donnée en Figure~1.
 
-\subsection*{Q2. Vérification de la 3\`eme forme normale (3FN)}
-Une FD $X\to A$ viole la 3FN si $X$ n'est pas une super-clé et $A$ n'est pas un attribut prime (appartenant à une clé).  
-\begin{itemize}
-  \item $IdCl\to NomCl$ : $IdCl$ n'est pas super-clé, $NomCl\notin\{IdCl,IdCar\}$ → violation.
-  \item $IdAg\to NomAg$ : $IdAg$ n'est pas super-clé, $NomAg$ non prime → violation.
-  \item $NomAg\to IdAg$ : $NomAg$ n'est pas super-clé, $IdAg$ non prime → violation.
-\end{itemize}
-\textbf{Conclusion : Le schéma n'est pas en 3\`eme forme normale.}\\
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+A & B & C & D \\ \hline
+\texttt{a1} & \texttt{b1} & \texttt{c1} & \texttt{d1}\\
+\texttt{a1} & \texttt{b2} & \texttt{c1} & \texttt{d1}\\
+\texttt{a2} & \texttt{b2} & \texttt{c1} & \texttt{d1}\\
+\texttt{a1} & \texttt{b2} & \texttt{c3} & \texttt{d3}\\
+\texttt{a1} & \texttt{b1} & \texttt{c1} & \texttt{d2}\\
+\texttt{a1} & \texttt{b2} & \texttt{c4} & \texttt{d4}\\\hline
+\end{tabular}
+\end{center}
 
-\subsection*{Q3. Non conformité à la forme normale de Boyce–Codd (FNBC)}
-En FNBC, toute FD non triviale $X\to A$ doit avoir $X$ super-clé.  
-Or, par exemple, $IdCar\to Type$ avec $IdCar$ non super-clé → violation de BCNF.  
-\textbf{Donc le schéma n'est pas en FNBC.}\\
-
-\subsection*{Q4. Décomposition en FNBC}
-On applique l'algorithme de décomposition :
 \begin{enumerate}
-  \item FD violant BCNF : $IdCar\to Type,Coût,IdAg,NomAg$.  
-    Décomposition en :
-    \begin{itemize}
-      \item $R_1(IdCar,Type,Coût,IdAg,NomAg)$
-      \item $R_2(IdCl,NomCl,IdCar,DDeb,DFin)$
-    \end{itemize}
-  \item Vérification et seconde décomposition de $R_1$ :  
-    FD interne $NomAg\to IdAg$ violant BCNF dans $R_1$.  
-    On décompose $R_1$ en :
-    \begin{itemize}
-      \item $R_{1a}(NomAg,IdAg)$
-      \item $R_{1b}(IdCar,Type,Coût,IdAg)$
-    \end{itemize}
-  \item Vérification et décomposition de $R_2$ :  
-    FD interne $IdCl\to NomCl$ violant BCNF dans $R_2$.  
-    On décompose $R_2$ en :
-    \begin{itemize}
-      \item $R_{2a}(IdCl,NomCl)$
-      \item $R_{2b}(IdCl,IdCar,DDeb,DFin)$
-    \end{itemize}
-  \item Vérification finale :
-    \begin{itemize}
-      \item $R_{1a}$ : $NomAg\to IdAg$ et $IdAg\to NomAg$ → les deux attributs sont clés → BCNF.
-      \item $R_{1b}$ : $IdCar\to Type,Coût,IdAg$ → $IdCar$ clé de $R_{1b}$ → BCNF.
-      \item $R_{2a}$ : $IdCl\to NomCl$ avec $IdCl$ clé → BCNF.
-      \item $R_{2b}$ : $IdCl,IdCar\to DDeb,DFin$ avec LHS clé → BCNF.
-    \end{itemize}
+  \item \texttt{SELECT A, B, COUNT(C) FROM R GROUP BY A, B;}\\
+    \textbf{Résultat :}
+    \begin{tabular}{c|c|c}
+    A & B & COUNT(C) \\
+    \hline
+    \texttt{a1} & \texttt{b1} & 2\\
+    \texttt{a1} & \texttt{b2} & 3\\
+    \texttt{a2} & \texttt{b2} & 1\\
+    \end{tabular}
+
+  \item \texttt{SELECT A, B, COUNT(DISTINCT C) FROM R GROUP BY A, B;}\\
+    \textbf{Résultat :}
+    \begin{tabular}{c|c|c}
+    A & B & COUNT(DISTINCT C) \\
+    \hline
+    \texttt{a1} & \texttt{b1} & 1\\
+    \texttt{a1} & \texttt{b2} & 3\\
+    \texttt{a2} & \texttt{b2} & 1\\
+    \end{tabular}
+
+  \item \texttt{SELECT A, COUNT(C) FROM R GROUP BY A, B;}\\
+    \textbf{Résultat :}\newline
+    C'est une requête non valide SQL standard, car on ne peut pas projeter \texttt{A} sans inclure \texttt{B} dans le \texttt{GROUP BY} ou dans un agrégat.
+
+  \item \texttt{SELECT A, COUNT(DISTINCT C) FROM R GROUP BY A, B;}\\
+    \textbf{Résultat :}\newline
+    Même observation que la requête précédente : invalidité due au \texttt{GROUP BY}.
+
+  \item \texttt{SELECT A, B, COUNT(C) FROM R GROUP BY A;}\\
+    \textbf{Résultat :}\newline
+    Non valide pour la même raison : \texttt{B} n'est pas dans le \texttt{GROUP BY} ni agrégé.
+
+  \item \texttt{SELECT A, B, COUNT(DISTINCT C) FROM R GROUP BY A;}\\
+    \textbf{Résultat :}\newline
+    Non valide pour la même raison.
 \end{enumerate}
 
-\noindent\textbf{Schéma final en FNBC :}
-\begin{align*}
-R_{1a}(NomAg,IdAg), \quad
-R_{1b}(IdCar,Type,Coût,IdAg),\\
-R_{2a}(IdCl,NomCl), \quad
-R_{2b}(IdCl,IdCar,DDeb,DFin).
-\end{align*}
+\section*{Partie 3 : Anomalies de mise à jour}
+Soit la relation \texttt{Employé(Emp\_Id, Nom, Salle, Extension)} de la Figure~2.
+
+\subsection*{Question 3.1 : Types d'anomalies}
+On identifie les trois anomalies :
+\begin{description}
+  \item[Anomalie de suppression] \hfill\\
+    \textit{Exemple :} Suppression de l'employé \texttt{Durant} (ligne \texttt{E001, Durant, B3, 4500}) conduit à perdre l'information sur la salle \texttt{B3} et son extension \texttt{4500}.\\
+
+  \item[Anomalie d'insertion] \hfill\\
+    \textit{Exemple :} Pour insérer une nouvelle salle \texttt{C1} avec extension \texttt{4600} sans avoir d'employé assigné, on ne peut pas, car la relation impose un \texttt{Emp\_Id}.\\
+
+  \item[Anomalie de mise à jour] \hfill\\
+    \textit{Exemple :} Changer l'extension de la salle \texttt{A7} de \texttt{3142} à \texttt{3150} nécessite de modifier deux tuples (\texttt{E001, Dupont} et \texttt{E001, Petit}), risquant incohérence si on oublie l'un.
+\end{description}
+
+\subsection*{Question 3.2 : Élimination des anomalies}
+Pour éliminer ces anomalies, on décompose la relation \texttt{Employé} en deux relations :
+\[
+\begin{aligned}
+& \text{Employe}(Emp\_Id, Nom),\\
+& \text{Localisation}(Salle, Extension).
+\end{aligned}
+\]
+Chaque tuple \texttt{Employe} contient maintenant un employé indépendant de la salle,
+et chaque tuple \texttt{Localisation} mappe une salle à son extension sans redondance.
+
+\subsection*{Question 3.3 : Faut-il toujours éliminer ?}
+Non, pas systématiquement. Lorsque l'on a besoin de requêtes très fréquentes alliant
+employé, salle et extension, la décomposition peut nuire aux performances (trop de jointures).
+Il faut équilibrer coût de maintenance et besoin de cohérence, selon les priorités de l'application.
 
 \end{document}
